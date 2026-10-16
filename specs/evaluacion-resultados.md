@@ -1,49 +1,50 @@
 # Spec: evaluación de extracción, normalización y salidas
 
-## 1. Propósito
+## Estado
 
-Definir un procedimiento reproducible para medir la calidad de la extracción y normalización y comprobar la validez técnica de las salidas JSON y FHIR.
+Propuesta para la primera iteración del sistema
 
-## 2. Problema e intención
+## Qué construir
 
-Una demostración con ejemplos elegidos manualmente no demuestra que el sistema generalice. Evaluar con datos anotados y validadores de formato permite detectar errores, comparar enfoques técnicos y justificar las limitaciones del prototipo.
+Se construirá un procedimiento de evaluación reproducible que ejecute el pipeline sobre las particiones del corpus y genere un informe. La evaluuación cubrirá:
 
-## 3. Qué construir
+1. La estracción de entidades
+2. La clasificación por tipo
+3. La normallización
+4. La valided de la salida estructurada
 
-Un procedimiento de evaluación que:
-- seleccione un corpus público anotado en español y documente su versión, licencia y etiquetas;
-- defina particiones de entrenamiento/desarrollo/prueba o utilice las particiones oficiales;
-- mida extracción con precisión, recall y F1;
-- mida normalización con exactitud top-1 y cobertura;
-- valide el JSON contra su esquema;
-- valide los recursos FHIR contra la versión y los perfiles declarados;
-- genere un informe reproducible con configuración, resultados y limitaciones.
+Para extracción se calcularán precisión, exhaustividad (recall) y F1, indicando si la coincidencia es estricta o parcial. Las métricas se mostrarán globalmente y por categoría. Para la normalización se informará también la exactitud de código entre las entidades correctamente extraídas y aquellas con referencia disponible.
 
-Para extracción, una predicción será correcta si coinciden exactamente el intervalo y la categoría con la anotación de referencia. Para normalización, será correcta si el código y el sistema coinciden con la referencia.
+El informe incluirá la configuración utilizada: corpus y  versión, partición, modelo, parámetros, semilla aleatoria, fecha de ejecución y número de ejemplos.
 
-## 4. Restricciones y supuestos
+## Por qué
 
-- El conjunto de prueba permanecerá separado de los datos utilizados para entrenar, ajustar reglas o seleccionar modelos.
+Nuestro pipeline clínico puede detectar muchas menciones y, sin embargo, asociarlas mal a códigos, medir cada etapa evita ocultar errores detrás de una única cifra y permite decidir si una mejora afecta a la extracción, a la normalización o solo al formato de salida.
+
+## Restricciones y supuestos
+
+- El conjunto de prueba sólo se usará en la evaluación final.
+- Las métricas se calcularán con una herramienta o implementación versionada y documentada.
 - Se documentará cualquier diferencia entre las etiquetas del corpus y las categorías del proyecto.
 - No se combinarán puntuaciones de corpus incompatibles sin explicar las transformaciones.
+- Los casos sin entidades deberán incluirse en el cálculo de errores de documento y no eliminarse silenciosamente.
 - Se informarán las categorías con pocos ejemplos para obtener métricas estables.
-- Los umbrales son objetivos iniciales, no resultados ya alcanzados.
+- Los umbrales son objetivos de la primera iteración, no una garantía de rendimiento.
 - La evaluación FHIR medirá validez estructural y cumplimiento de las reglas declaradas; no demostrará validez clínica ni interoperabilidad en producción.
 
-## 5. Criterios de aceptación
+## Criterios de aceptación
 
-1. El informe identifica el corpus, versión, partición, mapeo de etiquetas, enfoque/modelo y versiones de dependencias relevantes.
-2. El informe incluye precisión, recall y F1 globales y por categoría cuando haya ejemplos suficientes.
-3. El F1 micro global de extracción en prueba es ≥ 0,75 como objetivo inicial; si no se alcanza, se reporta el valor observado y se describen los errores principales.
-4. Para normalización se informa de exactitud top-1 y cobertura; objetivo inicial de exactitud ≥ 0,70 en el subconjunto evaluable, con resultados separados por terminología cuando haya datos suficientes.
-5. Se informa del número de menciones evaluadas y de los falsos positivos y falsos negativos de extracción.
-6. El conjunto de prueba no se usa para entrenar o seleccionar modelos; la partición queda documentada.
-7. El 100 % de los casos JSON válidos de la batería supera la validación del esquema.
-8. El 100 % de los recursos FHIR generados en la batería de prueba supera el validador estructural y las reglas declaradas.
-9. El informe enumera al menos tres limitaciones observadas o esperables, como diferencias entre corpus, ambigüedad terminológica, variación lingüística o cobertura desigual.
-10. Otra persona del equipo puede repetir la evaluación siguiendo las instrucciones documentadas y obtener las mismas métricas, salvo variaciones justificadas por aleatoriedad o entorno.
+1. Una única orden o procedimiento documentado ejecuta la evaluación sobre la partición seleccionada y genera un informe reproducible.
+2. El informe identifica el corpus, versión, partición, mapeo de etiquetas, enfoque/modelo y versiones de dependencias relevantes.
+3. El informe incluye precisión, recall y F1 globales y por categoría evaluada.
+4. El informe indica explícitamente si la coincidencia usada para cada métricae s estricta o parcial.
+5. El informe enumera al menos tres limitaciones observadas o esperables, como diferencias entre corpus, ambigüedad terminológica, variación lingüística o cobertura desigual.
+6. El F1 micro global de extracción en prueba es ≥ 0,75 como objetivo inicial; si no se alcanza, se reporta el valor observado y se describen los errores principales.
+7. Para normalización se informa de exactitud top-1 y cobertura; objetivo inicial de exactitud ≥ 0,70 en el subconjunto evaluable, con resultados separados por terminología cuando haya datos suficientes.
+8. El 100 % de los casos JSON válidos de la batería supera la validación del esquema.
+9. El 100 % de los recursos FHIR generados en la batería de prueba supera el validador estructural y las reglas declaradas.
 
-## 6. Fuera de alcance
+## Fuera de alcance
 
 - Demostrar validez clínica para uso asistencial.
 - Afirmar que el rendimiento generaliza a historias clínicas reales por haber evaluado casos publicados.
