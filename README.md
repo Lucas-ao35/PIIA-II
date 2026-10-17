@@ -2,15 +2,15 @@
 
 ## ¿Qué es el proyecto?
 
-Este proyecto propone un sistema de procesamiento del lenguaje natural (PLN) para leer textos clínicos en español, principalmente casos clínicos publicados y ejemplos sintéticos, y transformarlos en información clínica estructurada. El programa identificará enfermedades, síntomas y signos, fármacos y procedimientos; intentará normalizar las entidades mediante terminologías clínicas de referencia, como SNOMED CT o CIE-10-ES cuando exista una correspondencia adecuada; y generará una salida JSON homogénea y validable y una representación inicial mediante recursos HL7 FHIR para las entidades que puedan mapearse de forma justificada.
+Este proyecto define un prototipo de procesamiento del lenguaje natural (PLN) para transformar textos clínicos en español, principalmente casos publicados y ejemplos sintéticos, en datos estructurados. El flujo previsto extrae menciones clínicas, intenta normalizarlas con terminologías de referencia cuando haya correspondencia justificable y genera JSON; contempla además una representación inicial en recursos HL7 FHIR. En esta entrega se especifican esas funcionalidades, pero todavía no se implementan.
 
 El caso de uso responde a que una parte importante de la información clínica se expresa en texto libre, lo que dificulta su consulta, análisis y explotación estadística. El proyecto busca facilitar el análisis posterior, la investigación biomédica y la interoperabilidad con sistemas de información sanitaria, no sustituir el criterio de profesionales sanitarios.
 
 ##  Motivación y objetivos
 
-El equipo ha elegido este caso porque conecta la inteligencia artificial y el PLN con una necesidad concreta del ámbito sanitario: la conversión de información expresada en lenguaje natural sin perder la trazabilidad de su origen y facilitando su explotación secundaria. Existen corpus clínicos en español publicados para investigación, lo que permite experimentar sin trabajar con historias clínicas reales. El SERGAS aborda una necesidad relacionada mediante IANUS, que organiza la información clínica porproblemas de salud y utiliza terminologías normalizadas. Este proyecto permite estudiar, de forma reproducible, las etapas necesarias para pasar de una frase clínica a un registro que pueda ser procesado por una base de datos.
+El caso responde al problema de que parte de la información clínica está en texto libre y resulta difícil de consultar y reutilizar. La primera reunión recomendó comenzar por fármacos; el equipo prevé ampliar después el reconocimiento a enfermedades, síntomas/signos y procedimientos. El SERGAS aborda una necesidad relacionada mediante IANUS, que organiza la información por problemas de salud. Los corpus publicados permiten definir una evaluación sin usar historias clínicas reales.
 
-Al terminar el proyecto esperamos disponer de una pipeline funcional que:
+El objetivo del proyecto es especificar y, en fases posteriores, construir un pipeline que:
 1. Reciba textos clínicos en español;
 2. Detecte y clasifique entidades clínicas previstas;
 3. Normalice las entidades cuando haya una correspondencia defendible en la terminología de referencia;
@@ -18,21 +18,20 @@ Al terminar el proyecto esperamos disponer de una pipeline funcional que:
 5. Convierta a recursos FHIR un subconjunto definido de la información estructurada;
 6. Permita evaluar sus resultados frente a corpus anotados y validar técnicamente las salidas mediante métricas estándar.
 
-Se comenzará por la entidad de fármacos, tal como se recomendó en la primera reunión, y se diseñará la solución para poder incorporar posteriormente enfermedades, síntomas y procedimientos.
+La primera fase de implementación priorizará fármacos con PharmaCoNER. La incorporación de enfermedades, síntomas/signos y procedimientos queda prevista como ampliación, sujeta a comprobar la compatibilidad y disponibilidad de sus corpus.
 El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparación de alternativas) queda por decidir. La decisión se tomará tras inspeccionar los corpus, sus anotaciones, las licencias y los recursos disponibles, y se documentará antes de la implementación.
 
 ## Alcance
 
-### Incluido en la primera versión
+### Definido en el proyecto
 
 - Procesamiento de textos clínicos en español procedentes de corpus públicos permitidos.
-- Extracción de fármacos mediante el corpus PharmaCoNER.
-- Incorporación de enfermedades, síntomas y procedimientos mediante DisTEMIST, SympTEMIST y MedProcNER.
+- Inicio de la extracción con fármacos mediante PharmaCoNER; ampliación prevista a enfermedades, síntomas/signos y procedimientos con DisTEMIST, SympTEMIST y MedProcNER, si sus datos son compatibles.
 - Detección de menciones y clasificación por tipo de entidad.
 - Conservación del texto original de cada mención y de sus posiciones en el texto cuando el método y el corpus lo permitan.
 - Normalización a SNOMED CT o CIE-10-ES cuando se disponga de recursos de referencia y la correspondencia sea inequívoca. Las entidades ambiguas o sin correspondencia podrán quedar sin código.
 - Generación de JSON homogéneo, validable y con un esquema documentado.
-- Generación de una salida FHIR inicial para los tipos de información que se hayan mapeado y validado. El alcance no presupone representar todo el contenido del texto como un recurso FHIR.
+- Especificación de una salida FHIR inicial para los tipos de información que puedan mapearse y validarse. No se presupone representar todo el contenido del texto como un recurso FHIR.
 - Evaluación con datos anotados, separando el conjunto de prueba de los datos usados para desarrollar o ajustar el sistema.
 - Ejecución local y documentación de configuración, dependencias, versiones y limitaciones.
 
@@ -93,7 +92,7 @@ Los roles y correos personales deben completarse por el equipo antes de la entre
 - La salida FHIR se valida contra la versión y los perfiles de FHIR declarados en la implementación; los recursos que no puedan mapearse de forma justificada se informan como no representados, sin inventar datos.
 - Los resultados, versiones de datos/modelos, decisiones técnicas y limitaciones quedan documentados.
 
-Los umbrales cuantitativos iniciales y el protocolo detallado se recogen en las specs. Son objetivos propuestos, no resultados ya obtenidos; deberán revisarse si el corpus elegido no permite una evaluación válida.
+Los umbrales y el protocolo detallado son objetivos propuestos en las specs, no resultados obtenidos. Deberán revisarse si los corpus elegidos no permiten una evaluación válida.
 
 ## Estructura del repositorio
 

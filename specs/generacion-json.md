@@ -1,14 +1,14 @@
 # Spec: generación de salida JSON estructurada
 
-## 1. Propósito
+## Propósito
 
 Transformar el texto de entrada y los resultados de extracción y normalización en un objeto JSON consistente, validable y reutilizable. JSON será la representación estructurada canónica de la primera versión y servirá como entrada para la conversión a FHIR.
 
-## 2. Problema e intención
+## Problema e intención
 
 Los resultados de PLN no son fáciles de almacenar ni analizar si cada ejecución los representa de forma distinta. Un esquema estable facilita pruebas, revisión, comparación de resultados y conversión a formatos interoperables.
 
-## 3. Qué construir
+## Qué construir
 
 El componente recibirá el texto original, las entidades extraídas y sus resultados de normalización. Producirá un objeto con esta estructura mínima:
 
@@ -36,7 +36,7 @@ El componente recibirá el texto original, las entidades extraídas y sus result
 
 El ejemplo es ilustrativo; en la ejecución real las posiciones y el fragmento deben corresponder al texto de entrada. La versión del esquema identifica el contrato de salida. La conservación de `source_text` se limita al prototipo con datos públicos o sintéticos.
 
-## 4. Restricciones y supuestos
+## Restricciones y supuestos
 
 - Los nombres de campo y los valores permitidos serán estables dentro de una versión del esquema.
 - `start` es inclusivo y `end` exclusivo; ambos son índices de caracteres del texto original.
@@ -46,7 +46,7 @@ El ejemplo es ilustrativo; en la ejecución real las posiciones y el fragmento d
 - No se incluirán datos personales reales en las pruebas.
 - JSON es la representación canónica; la salida FHIR se genera en una etapa posterior definida en `generacion-fhir.md`.
 
-## 5. Criterios de aceptación
+## Criterios de aceptación
 
 1. Para una entrada válida, la salida se analiza con un parser JSON estándar sin errores.
 2. Toda salida válida contiene `schema_version`, `language`, `source_text` y `entities`.
@@ -58,7 +58,7 @@ El ejemplo es ilustrativo; en la ejecución real las posiciones y el fragmento d
 8. Una entrada inválida produce un error identificable y documentado.
 9. Las entidades aparecen en orden de inicio en el texto; se documenta la política para entidades con el mismo inicio.
 
-## 6. Fuera de alcance
+## Fuera de alcance
 
 - Base de datos de producción.
 - Intercambio directo con sistemas sanitarios.

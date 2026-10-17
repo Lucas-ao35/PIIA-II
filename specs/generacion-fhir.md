@@ -1,14 +1,14 @@
 # Spec: generación y validación de recursos HL7 FHIR
 
-## 1. Propósito
+## Propósito
 
 Convertir el subconjunto de información clínica estructurada en JSON a recursos HL7 FHIR que representen de forma válida los conceptos extraídos y normalizados. Esta funcionalidad constituye una salida de demostración del prototipo y no una integración con sistemas sanitarios reales.
 
-## 2. Problema e intención
+## Problema e intención
 
 FHIR ofrece una forma estandarizada de representar e intercambiar información sanitaria. Mapear los resultados a recursos FHIR permite comprobar hasta qué punto la información extraída puede representarse mediante un estándar de interoperabilidad, sin asumir que la conversión por sí sola garantiza exactitud clínica o integración real.
 
-## 3. Qué construir
+## Qué construir
 
 Un componente que reciba el JSON canónico y genere recursos FHIR JSON para los tipos de información acordados. Como punto de partida:
 - las enfermedades o problemas de salud podrán representarse mediante `Condition`;
@@ -19,7 +19,7 @@ Cada recurso deberá incluir, cuando corresponda, un identificador de sistema y 
 
 La primera versión generará archivos FHIR JSON locales y un informe de validación. No transmitirá los recursos a un servidor FHIR.
 
-## 4. Restricciones y supuestos
+## Restricciones y supuestos
 
 - Se elegirá y documentará una versión concreta de FHIR antes de implementar; la versión y los perfiles aplicables serán consistentes en las pruebas.
 - La salida debe cumplir la estructura y los tipos de datos de la versión seleccionada.
@@ -28,7 +28,7 @@ La primera versión generará archivos FHIR JSON locales y un informe de validac
 - El texto de entrada procede de corpus públicos permitidos o ejemplos sintéticos.
 - La primera versión no implementa perfiles nacionales específicos ni certificación de conformidad.
 
-## 5. Criterios de aceptación
+## Criterios de aceptación
 
 1. La versión de FHIR y el formato de serialización se documentan en el README o en la documentación técnica.
 2. Para cada ejemplo de prueba marcado como representable, el componente genera un recurso JSON con `resourceType` válido para el recurso seleccionado.
@@ -39,7 +39,7 @@ La primera versión generará archivos FHIR JSON locales y un informe de validac
 7. Se documenta una tabla de mapeo entre los campos JSON de origen y los campos FHIR de destino, incluidos los campos que no pueden transformarse.
 8. La ejecución se limita a generar archivos locales; no se envían datos a servicios externos.
 
-## 6. Fuera de alcance
+## Fuera de alcance
 
 - Despliegue o mantenimiento de un servidor FHIR.
 - Integración con IANUS, SERGAS u otros sistemas clínicos.
