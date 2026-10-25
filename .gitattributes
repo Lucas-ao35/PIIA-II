@@ -1,0 +1,26 @@
+# Configuración global de saltos de línea para compatibilidad Windows / Linux / macOS
+* text=auto
+
+# Scripts de Python y corpus clínicos deben mantener siempre LF para que los offsets de caracteres coincidan
+*.py text eol=lf
+*.txt text eol=lf
+*.ann text eol=lf
+*.tsv text eol=lf
+*.conll text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+
+# Scripts nativos de Windows
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Scripts shell de Unix / Linux
+*.sh text eol=lf
+
+# Binarios y archivos comprimidos
+*.zip binary
+*.tar.gz binary
+*.png binary
+*.jpg binary
