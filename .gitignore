@@ -28,9 +28,9 @@ ENV/
 .uv/
 
 # Datasets and raw archives
-data/
-data/raw/
-data/archives/
+*data/
+*data/raw/
+*data/archives/
 *.zip
 *.tar.gz
 
