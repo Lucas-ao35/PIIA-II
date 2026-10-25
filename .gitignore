@@ -22,10 +22,10 @@ wheels/
 *.egg
 
 # Virtual environments & uv
-.venv/
-venv/
-ENV/
-.uv/
+*.venv/
+*venv/
+*ENV/
+*.uv/
 
 # Datasets and raw archives
 *data/
