@@ -107,19 +107,20 @@ entregas/
 └── cu-03-extraccion-clinica/
     ├── README.md
     └── specs/
+        ├── evaluacion-resultados.md
         ├── extraccion-entidades.md
-        ├── normalizacion-clinica.md
-        ├── generacion-json.md
         ├── generacion-fhir.md
-        └── evaluacion-resultados.md
+        ├── generacion-json.md
+        └── normalizacion-clinica.md
 ```
 
 - `README.md`: visión general, motivación, alcance, datos candidatos, equipo y organización del proyecto.
-- `specs/extraccion-entidades.md`: comportamiento esperado al detectar y clasificar menciones clínicas.
-- `specs/normalizacion-clinica.md`: reglas para proponer códigos estándar y gestionar casos ambiguos o sin correspondencia.
-- `specs/generacion-json.md`: contrato de salida JSON, validación y gestión de errores.
-- `specs/generacion-fhir.md`: conversión del subconjunto acordado de datos a recursos FHIR y validación.
 - `specs/evaluacion-resultados.md`: protocolo y métricas para comprobar la calidad del prototipo.
+- `specs/extraccion-entidades.md`: comportamiento esperado al detectar y clasificar menciones clínicas.
+- `specs/generacion-fhir.md`: conversión del subconjunto acordado de datos a recursos FHIR y validación.
+- `specs/generacion-json.md`: contrato de salida JSON, validación y gestión de errores.
+- `specs/normalizacion-clinica.md`: reglas para proponer códigos estándar y gestionar casos ambiguos o sin correspondencia.
+
 
 
 ## Seguridad y limitaciones
