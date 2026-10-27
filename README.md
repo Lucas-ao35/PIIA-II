@@ -1,32 +1,38 @@
-# CU-03 — Extracción y estructuración de información clínica
+# CU-03 — Extracción y estructuración de información clínica en español mediante PLN
 
 ## ¿Qué es el proyecto?
 
-Este proyecto define un prototipo de procesamiento del lenguaje natural (PLN) para transformar textos clínicos en español, principalmente casos publicados y ejemplos sintéticos, en datos estructurados. El flujo previsto extrae menciones clínicas, intenta normalizarlas con terminologías de referencia cuando haya correspondencia justificable y genera JSON; contempla además una representación inicial en recursos HL7 FHIR. En esta entrega se especifican esas funcionalidades, pero todavía no se implementan.
+En este proyecto se propone definir un prototipo de Procesamiento del Lenguaje Natural (PLN) que lea textos clínicos en español, principalmente casos publicados y ejemplos sintéticos, y los transforme en datos estructurados. El flujo previsto extraerá menciones clínicas (enfermedades, síntomas, fármacos, procedimientos, ...), intentará normalizarlas con terminologías de referencia cuando haya correspondencia justificable y generará JSON; contempla además una representación inicial en recursos HL7 FHIR. En esta entrega se especifican esas funcionalidades, pero todavía no se implementan.
 
 El caso de uso responde a que una parte importante de la información clínica se expresa en texto libre, lo que dificulta su consulta, análisis y explotación estadística. El proyecto busca facilitar el análisis posterior, la investigación biomédica y la interoperabilidad con sistemas de información sanitaria, no sustituir el criterio de profesionales sanitarios.
 
+
 ##  Motivación y objetivos
 
-El caso responde al problema de que parte de la información clínica está en texto libre y resulta difícil de consultar y reutilizar. La primera reunión recomendó comenzar por fármacos; el equipo prevé ampliar después el reconocimiento a enfermedades, síntomas/signos y procedimientos. El SERGAS aborda una necesidad relacionada mediante IANUS, que organiza la información por problemas de salud. Los corpus publicados permiten definir una evaluación sin usar historias clínicas reales.
+Como equipo, este caso nos ha llamado la atención por conectar con la inteligencia artificial y el PLN con una necesidad real concreta del ámbito sanitario. Responde al problema de que parte de la información clínica está en texto libre y resulta difícil de consultar y reutilizar. Este proyecto permite estudiar, de forma reproducible, las etapas necesarias para pasar de una frase clínica a un registro que pueda ser procesado por una base de datos.
 
-El objetivo del proyecto es especificar y, en fases posteriores, construir un pipeline que:
-1. Reciba textos clínicos en español;
-2. Detecte y clasifique entidades clínicas previstas;
-3. Normalice las entidades cuando haya una correspondencia defendible en la terminología de referencia;
-4. Genere una salida JSON validable;
-5. Convierta a recursos FHIR un subconjunto definido de la información estructurada;
+En la primera reunión se nos recomendó comenzar por el tratamiento de fármacos, mas el equipo prevé una posible ampliación posterior del reconocimiento a enfermedades, síntomas/signos y procedimientos. El SERGAS aborda una necesidad relacionada mediante IANUS, que organiza la información por problemas de salud. Además, los corpus clínicos en español publicados para investigación permiten definir una evaluación sin usar historias clínicas reales.
+
+El objetivo del proyecto es especificar, y en fases posteriores construir, un pipeline que:
+
+1. Reciba textos clínicos en español.
+2. Detecte y clasifique entidades clínicas previstas.
+3. Normalice las entidades cuando haya una correspondencia defendible en la terminología de referencia.
+4. Genere una salida JSON validable.
+5. Convierta a recursos FHIR un subconjunto definido de la información estructurada.
 6. Permita evaluar sus resultados frente a corpus anotados y validar técnicamente las salidas mediante métricas estándar.
 
 La primera fase de implementación priorizará fármacos con PharmaCoNER. La incorporación de enfermedades, síntomas/signos y procedimientos queda prevista como ampliación, sujeta a comprobar la compatibilidad y disponibilidad de sus corpus.
+
 El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparación de alternativas) queda por decidir. La decisión se tomará tras inspeccionar los corpus, sus anotaciones, las licencias y los recursos disponibles, y se documentará antes de la implementación.
+
 
 ## Alcance
 
 ### Definido en el proyecto
 
 - Procesamiento de textos clínicos en español procedentes de corpus públicos permitidos.
-- Inicio de la extracción con fármacos mediante PharmaCoNER; ampliación prevista a enfermedades, síntomas/signos y procedimientos con DisTEMIST, SympTEMIST y MedProcNER, si sus datos son compatibles.
+- Inicio de la extracción con fármacos mediante el corpus PharmaCoNER; ampliación prevista a enfermedades, síntomas/signos y procedimientos con DisTEMIST, SympTEMIST y MedProcNER, si sus datos son compatibles.
 - Detección de menciones y clasificación por tipo de entidad.
 - Conservación del texto original de cada mención y de sus posiciones en el texto cuando el método y el corpus lo permitan.
 - Normalización a SNOMED CT o CIE-10-ES cuando se disponga de recursos de referencia y la correspondencia sea inequívoca. Las entidades ambiguas o sin correspondencia podrán quedar sin código.
@@ -46,18 +52,19 @@ El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparac
 - Garantizar que toda entidad tenga un código estándar.
 - Elegir un modelo concreto antes de analizar los datos y comparar la viabilidad de los enfoques.
 
+
 ## Usuarios destinatarios
 
-El prototipo está dirigido principalmente a estudiantes e investigadores que quieran explorar métodos de PLN clínico y preparar datos textuales para análisis secundarios. No está destinado a pacientes ni a profesionales para su uso directo en decisiones asistenciales.
+El prototipo está dirigido principalmente a estudiantes e investigadores que quieran explorar métodos de PLN clínico y preparar datos textuales para análisis secundarios. No está destinado a pacientes ni a profesionales para su uso directo en decisiones asistenciales. Sin embargo, puede ser una fuente de apoyo para profesionales del sector en un futuro, cuando se refinen sus funcionalidades.
+
 
 ## Datos y referencias
 
-Se priorizarán corpus públicos anotados en español, comprobando sus condiciones de uso y la adecuación de sus anotaciones antes de incorporarlos. Entre las fuentes candidatas se encuentran:
+Se priorizarán corpus públicos escritos en español, comprobando sus condiciones de uso y la adecuación de sus anotaciones antes de incorporarlos. Entre las fuentes candidatas se encuentran:
 
-- [TeMU-BSC](https://temu.bsc.es/)
-- PlanTL-GOB-ES: https://huggingface.co/PlanTL-GOB-ES
-- [SPACCC](https://github.com/PlanTL-GOB-ES/SPACCC): corpus de casos clínicos
-  en español del que se derivan varios recursos.
+- [TeMU-BSC](https://temu.bsc.es/): repositorio
+- [PlanTL-GOB-ES](https://huggingface.co/PlanTL-GOB-ES): corpus y modelos
+- [SPACCC](https://github.com/PlanTL-GOB-ES/SPACCC): corpus base de casos clínicos en español del que se derivan varios recursos
 - [PharmaCoNER](https://huggingface.co/datasets/PlanTL-GOB-ES/pharmaconer): fármacos y proteínas
 - [DisTEMIST](https://temu.bsc.es/distemist): enfermedades 
 - [MedProcNER](https://zenodo.org/records/8224056): procedimientos
@@ -65,24 +72,24 @@ Se priorizarán corpus públicos anotados en español, comprobando sus condicion
 - [CodiEsp](https://temu.bsc.es/codiesp/): codificación CIE-10
 
 Como referencias terminológicas se considerarán SNOMED CT y CIE-10-ES, siempre respetando las licencias y condiciones de uso de cada recurso.
-- [SNOMED CT](https://www.snomed.org/)
-- CIE-10-ES: recursos oficiales del Ministerio de Sanidad.
-- [HL7 FHIR](https://www.hl7.org/fhir/)
+- [SNOMED CT](https://www.snomed.org/): terminología clínica que incorpora IANUS
+- CIE-10-ES: recursos oficiales del Ministerio de Sanidad
+- [HL7 FHIR](https://www.hl7.org/fhir/): formato de salida interoperable
     
-La mención de una fuente no implica que todas sus anotaciones sean compatibles entre sí ni que cubran las cuatro clases de entidad.
+La mención de una fuente no implica que todas sus anotaciones sean compatibles entre sí ni que cubran las cuatro clases de entidades.
+
 
 ## Equipo
 
 | Integrante | Rol principal | Correo |
 |---|---|---|
-| Lucas Amado Oseira | Pendiente de acordar | Pendiente de añadir |
-| María Lestón Geada | Pendiente de acordar | Pendiente de añadir |
-| Mariña Vilar Estévez | Pendiente de acordar | Pendiente de añadir |
-| Mateo Fraguas Abal | Pendiente de acordar | mateofraguas@gmail.com |
+| Lucas Amado Oseira | Gestor del proyecto y científico de datos | lucas.amado@rai.usc.es |
+| María Lestón Geada | Científica de datos| maria.leston0@rai.usc.es |
+| Mariña Vilar Estévez | Portavoz e ingeniera de datos | marina.vilar.estevez@rai.usc.es |
+| Mateo Fraguas Abal | Ingeniero de datos | mateo.fraguas@rai.usc.es |
 
 - Contacto de tutoría profesional: **Gema Novo Rego**, DIH DATAlife — ([gema@dihdatalife.com](mailto:gema@dihdatalife.com)).
 
-Los roles y correos personales deben completarse por el equipo antes de la entrega. No se han inventado direcciones de correo.
 
 ## Criterios generales de éxito
 
@@ -92,7 +99,6 @@ Los roles y correos personales deben completarse por el equipo antes de la entre
 - La salida FHIR se valida contra la versión y los perfiles de FHIR declarados en la implementación; los recursos que no puedan mapearse de forma justificada se informan como no representados, sin inventar datos.
 - Los resultados, versiones de datos/modelos, decisiones técnicas y limitaciones quedan documentados.
 
-Los umbrales y el protocolo detallado son objetivos propuestos en las specs, no resultados obtenidos. Deberán revisarse si los corpus elegidos no permiten una evaluación válida.
 
 ## Estructura del repositorio
 
@@ -108,13 +114,20 @@ entregas/
         └── evaluacion-resultados.md
 ```
 
-- `README.md`: visión general, motivación, alcance, datos candidatos, equipo y organización.
+- `README.md`: visión general, motivación, alcance, datos candidatos, equipo y organización del proyecto.
 - `specs/extraccion-entidades.md`: comportamiento esperado al detectar y clasificar menciones clínicas.
 - `specs/normalizacion-clinica.md`: reglas para proponer códigos estándar y gestionar casos ambiguos o sin correspondencia.
 - `specs/generacion-json.md`: contrato de salida JSON, validación y gestión de errores.
 - `specs/generacion-fhir.md`: conversión del subconjunto acordado de datos a recursos FHIR y validación.
 - `specs/evaluacion-resultados.md`: protocolo y métricas para comprobar la calidad del prototipo.
 
+
 ## Seguridad y limitaciones
 
-La primera versión trabajará únicamente con corpus públicos autorizados y/o textos sintéticos, sin datos identificables de pacientes. Los resultados son experimentales y no deben interpretarse como información validada para la asistencia sanitaria. El sistema debe distinguir entre una entidad detectada, un código propuesto y una entidad que no se ha podido normalizar. La conversión a FHIR no implica por sí sola que los datos sean clínicamente correctos ni que el sistema esté listo para integrarse en producción.
+- La primera versión trabajará únicamente con corpus públicos autorizados y/o textos sintéticos, sin datos identificables de pacientes, por lo que no habrá un riesgo real de fuga de datos.
+
+- Los resultados son experimentales y no deben interpretarse como información validada para la asistencia sanitaria.
+
+- El sistema debe distinguir entre una entidad detectada, un código propuesto y una entidad que no se ha podido normalizar.
+
+- La conversión a FHIR no implica por sí sola que los datos sean clínicamente correctos ni que el sistema esté listo para integrarse en producción.
