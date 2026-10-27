@@ -75,10 +75,10 @@ La mención de una fuente no implica que todas sus anotaciones sean compatibles 
 
 | Integrante | Rol principal | Correo |
 |---|---|---|
-| Lucas Amado Oseira | Pendiente de acordar | Pendiente de añadir |
+| Lucas Amado Oseira | Pendiente de acordar | lucas.amado@rai.usc.es |
 | María Lestón Geada | Pendiente de acordar | Pendiente de añadir |
-| Mariña Vilar Estévez | Pendiente de acordar | Pendiente de añadir |
-| Mateo Fraguas Abal | Pendiente de acordar | mateofraguas@gmail.com |
+| Mariña Vilar Estévez | Pendiente de acordar | marina.vilar.estevez@rai.usc.es |
+| Mateo Fraguas Abal | Pendiente de acordar | mateo.fraguas@rai.usc.es|
 
 - Contacto de tutoría profesional: **Gema Novo Rego**, DIH DATAlife — ([gema@dihdatalife.com](mailto:gema@dihdatalife.com)).
 
