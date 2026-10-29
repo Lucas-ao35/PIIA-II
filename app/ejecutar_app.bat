@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title CU-03 | Visualizador Clinico (Streamlit)
+title "CU-03 - Visualizador Clinico (Streamlit)"
 echo ======================================================================
 echo    CU-03 PIIA2 - Lanzador de la Aplicacion Web (Streamlit)
 echo ======================================================================

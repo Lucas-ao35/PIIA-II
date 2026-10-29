@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title CU-03 | Descarga de Datasets Clinicos
+title "CU-03 - Descarga de Datasets Clinicos"
 echo ======================================================================
 echo    CU-03 PIIA2 - Descarga de Datasets Clinicos (PharmaCoNER)
 echo ======================================================================
