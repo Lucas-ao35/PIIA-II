@@ -1,25 +1,25 @@
 # Spec: evaluación de extracción, normalización y salidas
 
-## Estado
+## Propósito
 
-Propuesta para la primera iteración del sistema
+Evaluar de forma reproducible el rendimiento del pipeline clínico en la extracción de entidades, su clasificación por tipo, la normalización a códigos clínicos y la generación de salidas estructuradas válidas en JSON y FHIR. La evaluación permitirá medir cada etapa de forma independiente mediante métricas adecuadas, identificar los principales errores y comprobar el cumplimiento de los objetivos iniciales. Los resultados servirán para comparar configuraciones, detectar limitaciones y orientar las mejoras del sistema, sin asumir que la validez estructural garantiza la validez clínica.
+
+## Problema e intención
+
+Nuestro pipeline clínico puede detectar muchas menciones y, sin embargo, asociarlas mal a códigos, medir cada etapa evita ocultar errores detrás de una única cifra y permite decidir si una mejora afecta a la extracción, a la normalización o solo al formato de salida.
 
 ## Qué construir
 
-Se construirá un procedimiento de evaluación reproducible que ejecute el pipeline sobre las particiones del corpus y genere un informe. La evaluuación cubrirá:
+Se construirá un procedimiento de evaluación reproducible que ejecute el pipeline sobre las particiones del corpus y genere un informe. La evaluación cubrirá:
 
 1. La estracción de entidades
 2. La clasificación por tipo
 3. La normallización
-4. La valided de la salida estructurada
+4. La validez de la salida estructurada
 
-Para extracción se calcularán precisión, exhaustividad (recall) y F1, indicando si la coincidencia es estricta o parcial. Las métricas se mostrarán globalmente y por categoría. Para la normalización se informará también la exactitud de código entre las entidades correctamente extraídas y aquellas con referencia disponible.
+Para extracción se calcularán precisión, exhaustividad (recall) y F1-score, indicando si la coincidencia es estricta o parcial. Las métricas se mostrarán globalmente y por categoría. Para la normalización se informará también la exactitud de código entre las entidades correctamente extraídas y aquellas con referencia disponible.
 
-El informe incluirá la configuración utilizada: corpus y  versión, partición, modelo, parámetros, semilla aleatoria, fecha de ejecución y número de ejemplos.
-
-## Por qué
-
-Nuestro pipeline clínico puede detectar muchas menciones y, sin embargo, asociarlas mal a códigos, medir cada etapa evita ocultar errores detrás de una única cifra y permite decidir si una mejora afecta a la extracción, a la normalización o solo al formato de salida.
+El informe incluirá la configuración utilizada: corpus y versión, partición, modelo, parámetros, semilla aleatoria, fecha de ejecución y número de ejemplos.
 
 ## Restricciones y supuestos
 
@@ -37,8 +37,8 @@ Nuestro pipeline clínico puede detectar muchas menciones y, sin embargo, asocia
 1. Una única orden o procedimiento documentado ejecuta la evaluación sobre la partición seleccionada y genera un informe reproducible.
 2. El informe identifica el corpus, versión, partición, mapeo de etiquetas, enfoque/modelo y versiones de dependencias relevantes.
 3. El informe incluye precisión, recall y F1 globales y por categoría evaluada.
-4. El informe indica explícitamente si la coincidencia usada para cada métricae s estricta o parcial.
-5. El informe enumera al menos tres limitaciones observadas o esperables, como diferencias entre corpus, ambigüedad terminológica, variación lingüística o cobertura desigual.
+4. El informe indica explícitamente si la coincidencia usada para cada métrica es estricta o parcial.
+5. El informe enumera al menos, y en caso de producirse, tres limitaciones observadas o esperables, como diferencias entre corpus, ambigüedad terminológica, variación lingüística o cobertura desigual.
 6. El F1 micro global de extracción en prueba es ≥ 0,75 como objetivo inicial; si no se alcanza, se reporta el valor observado y se describen los errores principales.
 7. Para normalización se informa de exactitud top-1 y cobertura; objetivo inicial de exactitud ≥ 0,70 en el subconjunto evaluable, con resultados separados por terminología cuando haya datos suficientes.
 8. El 100 % de los casos JSON válidos de la batería supera la validación del esquema.
