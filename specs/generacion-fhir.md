@@ -2,7 +2,7 @@
 
 ## Propósito
 
-Convertir el subconjunto de información clínica estructurada en JSON a recursos HL7 FHIR que representen de forma válida los conceptos extraídos y normalizados. Esta funcionalidad constituye una salida de demostración del prototipo y no una integración con sistemas sanitarios reales.
+Convertir el subconjunto de información clínica estructurada en JSON a recursos HL7 FHIR que representen de forma válida los conceptos extraídos y normalizados. Esta funcionalidad constituye una salida de demostración del prototipo y no una integración con sistemas sanitarios reales. Es una ampliación: se aborda solo después de que el camino crítico (fármacos → detección → normalización → JSON → métricas) funcione de punta a punta, y es lo primero que se recortará si el tiempo es justo.
 
 ## Problema e intención
 

@@ -12,9 +12,9 @@ Nuestro pipeline clínico puede detectar muchas menciones y, sin embargo, asocia
 
 Se construirá un procedimiento de evaluación reproducible que ejecute el pipeline sobre las particiones del corpus y genere un informe. La evaluación cubrirá:
 
-1. La estracción de entidades
+1. La extracción de entidades
 2. La clasificación por tipo
-3. La normallización
+3. La normalización
 4. La validez de la salida estructurada
 
 Para extracción se calcularán precisión, exhaustividad (recall) y F1-score, indicando si la coincidencia es estricta o parcial. Las métricas se mostrarán globalmente y por categoría. Para la normalización se informará también la exactitud de código entre las entidades correctamente extraídas y aquellas con referencia disponible.

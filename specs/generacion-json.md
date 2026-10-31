@@ -36,6 +36,13 @@ El componente recibirá el texto original, las entidades extraídas y sus result
 
 El ejemplo es ilustrativo; en la ejecución real las posiciones y el fragmento deben corresponder al texto de entrada. La versión del esquema identifica el contrato de salida. La conservación de `source_text` se limita al prototipo con datos públicos o sintéticos.
 
+### Valores permitidos
+
+Este es el único lugar donde se fijan los conjuntos de valores; el resto de specs los referencian y no los redefinen.
+
+- `type`: `disease` · `symptom` · `drug` · `procedure`
+- `normalization_status`: `matched` · `not_found` · `ambiguous`
+
 ## Restricciones y supuestos
 
 - Los nombres de campo y los valores permitidos serán estables dentro de una versión del esquema.
@@ -52,7 +59,7 @@ El ejemplo es ilustrativo; en la ejecución real las posiciones y el fragmento d
 2. Toda salida válida contiene `schema_version`, `language`, `source_text` y `entities`.
 3. Cada entidad contiene `text`, `type`, `start`, `end`, `coding` y `normalization_status`.
 4. Cada intervalo cumple `0 <= start < end <= longitud(source_text)` y `source_text[start:end]` coincide con `text`.
-5. `type` y `normalization_status` solo admiten los valores definidos en las specs relacionadas.
+5. `type` y `normalization_status` solo admiten los valores definidos en la sección «Valores permitidos» de esta spec.
 6. Si no existe código, los campos de código pueden ser `null` y el estado refleja que no se ha normalizado.
 7. Una batería de al menos 10 pruebas, que incluya acentos, texto vacío, ninguna entidad, varias entidades y entidad sin código, valida el 100 % de las salidas válidas contra el esquema.
 8. Una entrada inválida produce un error identificable y documentado.

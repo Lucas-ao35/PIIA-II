@@ -14,7 +14,7 @@ La información clínica aparece expresada de muchas formas en el texto libre. D
 
 Un componente que reciba un texto en español y devuelva una lista de menciones detectadas. Para cada mención incluirá, como mínimo:
 - texto original de la mención
-- categoría (`farmaco`, `enfermedad`, `sintoma` o `procedimiento`)
+- categoría (`type`: `drug`, `disease`, `symptom` o `procedure`, según los valores definidos en `generacion-json.md`)
 - índice de inicio y fin siguiendo una convención documentada
 - identificador del documento de origen, cuando se procese un corpus anotado
 - confianza del modelo, si el método utilizado la proporciona
@@ -36,7 +36,7 @@ La información contextual adicional, como negación o temporalidad, queda fuera
 1. Dado un texto válido, el componente devuelve una lista de entidades sin modificar el texto original.
 2. Dado un texto no vacío, el componente devuelve entidades con `text`, `type`, `start` y `end`.
 3. Para cada entidad, `text` coincide exactamente con `input[start:end]`.
-4. Todos los valores de `type` pertenecen al conjunto `disease`, `symptom`, `drug`, `procedure`.
+4. Todos los valores de `type` pertenecen al conjunto definido en `generacion-json.md`.
 5. Ante una entrada vacía o formada solo por espacios, devuelve una lista vacía o un error de validación documentado; el comportamiento será consistente.
 6. En el conjunto de prueba anotado, se informan precisión, recall y F1 por categoría y globales, con coincidencia exacta de límites y categoría. El objetivo inicial es F1 micro global ≥ 0,75; si el corpus no permite una comparación válida, se documentará y se propondrá una alternativa antes de evaluar.
 7. La partición de prueba no se utiliza para entrenar ni seleccionar hiperparámetros.

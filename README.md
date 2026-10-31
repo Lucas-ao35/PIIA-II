@@ -24,6 +24,10 @@ El objetivo del proyecto es especificar, y en fases posteriores construir, un pi
 
 La primera fase de implementación priorizará fármacos con PharmaCoNER. La incorporación de enfermedades, síntomas/signos y procedimientos queda prevista como ampliación, sujeta a comprobar la compatibilidad y disponibilidad de sus corpus.
 
+### Camino crítico y prioridades
+
+El camino que debe funcionar de punta a punta es: **fármacos → detección → normalización → JSON → métricas**. La normalización es la parte de mayor riesgo, por lo que se aborda pronto y no se deja detrás de FHIR; se prefiere una normalización sencilla que funcione a una salida FHIR impecable sin normalización detrás. La salida FHIR y las entidades adicionales (enfermedades, síntomas/signos y procedimientos) son ampliaciones, y FHIR es lo primero que se recortaría si el tiempo es justo.
+
 El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparación de alternativas) queda por decidir. La decisión se tomará tras inspeccionar los corpus, sus anotaciones, las licencias y los recursos disponibles, y se documentará antes de la implementación.
 
 
@@ -130,5 +134,7 @@ entregas/
 - Los resultados son experimentales y no deben interpretarse como información validada para la asistencia sanitaria.
 
 - El sistema debe distinguir entre una entidad detectada, un código propuesto y una entidad que no se ha podido normalizar.
+
+- SNOMED CT requiere licencia de afiliado (en España, cubierta por la licencia nacional del Ministerio de Sanidad). Antes de publicar mapeos en un repositorio abierto se confirmarán las condiciones de licencia y no se redistribuirán descripciones ni partes de la terminología hasta entonces.
 
 - La conversión a FHIR no implica por sí sola que los datos sean clínicamente correctos ni que el sistema esté listo para integrarse en producción.
