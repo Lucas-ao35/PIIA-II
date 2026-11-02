@@ -38,7 +38,7 @@ El ejemplo es ilustrativo; en la ejecución real las posiciones y el fragmento d
 
 ### Valores permitidos
 
-Este es el único lugar donde se fijan los conjuntos de valores; el resto de specs los referencian y no los redefinen.
+Fijamos el conjunto de valores válidos, que utilizaremos a lo largo del proyecto:
 
 - `type`: `disease` · `symptom` · `drug` · `procedure`
 - `normalization_status`: `matched` · `not_found` · `ambiguous`

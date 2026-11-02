@@ -26,7 +26,7 @@ La primera fase de implementación priorizará fármacos con PharmaCoNER. La inc
 
 ### Camino crítico y prioridades
 
-El camino que debe funcionar de punta a punta es: **fármacos → detección → normalización → JSON → métricas**. La normalización es la parte de mayor riesgo, por lo que se aborda pronto y no se deja detrás de FHIR; se prefiere una normalización sencilla que funcione a una salida FHIR impecable sin normalización detrás. La salida FHIR y las entidades adicionales (enfermedades, síntomas/signos y procedimientos) son ampliaciones, y FHIR es lo primero que se recortaría si el tiempo es justo.
+El camino óptimo es: **fármacos → detección → normalización → JSON → métricas**. Como la normalización es la parte de mayor riesgo se abordará pronto, priorizando una normalización sencilla y funcional, antes que una buena salida FHIR que carezca de normalización. Tanto esta como las entidades adicionales serían posibles ampliaciones.
 
 El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparación de alternativas) queda por decidir. La decisión se tomará tras inspeccionar los corpus, sus anotaciones, las licencias y los recursos disponibles, y se documentará antes de la implementación.
 
@@ -47,6 +47,7 @@ El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparac
 
 ### Fuera del alcance
 
+- Abordaje del resto de entidades (enfermedades, síntomas/signos y procedimientos).
 - Uso de historias clínicas reales o de datos personales de pacientes.
 - Diagnóstico, recomendación terapéutica o toma de decisiones clínicas.
 - Integración con IANUS, sistemas del SERGAS u otros sistemas de producción.

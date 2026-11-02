@@ -29,7 +29,7 @@ Los campos de `coding` podrán ser `null` cuando no haya código. El sistema dis
 - No se generarán códigos mediante similitud textual si la correspondencia no supera el umbral de confianza fijado y documentado.
 - La normalización de fármacos es parte del camino crítico del proyecto y se aborda pronto, en paralelo a la extracción y antes que FHIR. Se prefiere una normalización sencilla que funcione de principio a fin.
 - La primera versión no necesita cubrir todos los sinónimos ni todos los conceptos.
-- El uso de SNOMED CT requiere licencia de afiliado (en España, cubierta por la licencia nacional del Ministerio de Sanidad). Antes de publicar en un repositorio abierto cualquier mapeo, se confirmarán las condiciones de licencia; hasta entonces no se publicarán descripciones (`coding.display`) ni tablas o fragmentos de la terminología. Los identificadores numéricos y el código propio normalmente no suponen problema, pero también se confirmará. CIE-10-ES presenta menos restricciones.
+- El uso de SNOMED CT requiere licencia de afiliado (en España, cubierta por la licencia nacional del Ministerio de Sanidad). Antes de publicar en un repositorio abierto cualquier mapeo, se confirmarán las condiciones de licencia, hasta entonces no se publicarán descripciones (`coding.display`) ni tablas o fragmentos de la terminología. CIE-10-ES presenta menos restricciones.
 - Si el acceso a una terminología completa requiere licencia o autorización, se documentarán los recursos permitidos y sus limitaciones.
 - La evaluación se limitará a menciones con una referencia de oro y un mapeo inequívoco al sistema evaluado.
 - El JSON deberá ser válido, codificado en UTF-8 y conservar el orden de las entidades según su aparición en el texto.
