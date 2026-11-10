@@ -8,3 +8,6 @@ reports/*.json
 __pycache__/
 .pytest_cache/
 *.pyc
+# Evitamos los archivos de salida, .json dentro de app/ y la carpeta de informes generados localmente
+*.json
+reports/

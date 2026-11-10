@@ -23,7 +23,7 @@ Procesar un texto:
 ```bash
 python scripts/run_pipeline.py --text "Se pautó enoxaparina y omeprazol."
 python scripts/evaluate.py --save-model models/baseline     # guarda el modelo
-python scripts/run_pipeline.py --model models/baseline --file caso.txt --out caso.json
+python scripts/run_pipeline.py --model models/baseline --file ejemplos/caso-sintetico.txt --out caso.json
 ```
 
 ## Estructura
@@ -38,6 +38,7 @@ python scripts/run_pipeline.py --model models/baseline --file caso.txt --out cas
 | `cu03/evaluation.py` | Métricas estrictas e informe reproducible | `evaluacion-resultados.md` |
 | `schemas/documento-1.0.schema.json` | JSON Schema publicado (Draft 2020-12) | `generacion-json.md` |
 | `scripts/evaluate.py` | Orden única de evaluación | `evaluacion-resultados.md` |
+| `ejemplos/caso-sintetico.txt` | Caso clínico sintético para probar el pipeline | — |
 | `app.py` | Visualizador: gold vs predicción, pipeline en vivo | — |
 | `tests/` | Criterios de aceptación como tests | todas |
 
