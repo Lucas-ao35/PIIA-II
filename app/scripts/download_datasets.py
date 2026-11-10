@@ -81,11 +81,13 @@ def download_with_progress(url: str, output_path: Path, label: str = ""):
     req = urllib.request.Request(url, headers=headers)
 
     print(f"[*] Descargando {label or output_path.name} desde:\n    {url}")
-    with urllib.request.urlopen(req) as resp, open(temp_path, "wb") as f_out:
+    with urllib.request.urlopen(req, timeout=120) as resp, open(temp_path, "wb") as f_out:
         total_size = resp.getheader("Content-Length")
         total_bytes = int(total_size) if total_size else None
         downloaded = 0
         chunk_size = 64 * 1024
+        last_shown = -1
+        interactive = sys.stdout.isatty()
 
         while True:
             chunk = resp.read(chunk_size)
@@ -95,6 +97,11 @@ def download_with_progress(url: str, output_path: Path, label: str = ""):
             downloaded += len(chunk)
             if total_bytes:
                 percent = (downloaded / total_bytes) * 100
+                # En logs/CI (sin TTY) solo se muestra cada 10 % para no inundar la salida.
+                step = int(percent) if interactive else int(percent // 10) * 10
+                if step == last_shown:
+                    continue
+                last_shown = step
                 mb_down = downloaded / (1024 * 1024)
                 mb_total = total_bytes / (1024 * 1024)
                 sys.stdout.write(f"\r    Progreso: {mb_down:6.2f} MB / {mb_total:6.2f} MB ({percent:5.1f}%)")
@@ -141,9 +148,14 @@ def download_hf_conll(dataset_key: str, dest_dir: Path):
             print(f"    - {filename} ya existe, omitiendo.")
             continue
         req = urllib.request.Request(url, headers={"User-Agent": "PIIA2-CU03-DatasetDownloader/1.0"})
-        with urllib.request.urlopen(req) as resp, open(out_file, "wb") as f_out:
-            f_out.write(resp.read())
-        print(f"    [+] {filename} descargado ({out_file.stat().st_size / 1024:.1f} KB)")
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                payload = resp.read()
+        except OSError as exc:  # los CoNLL son opcionales: no deben abortar la descarga principal
+            print(f"    [!] No se pudo descargar {filename}: {exc}")
+            continue
+        out_file.write_bytes(payload)
+        print(f"    [+] {filename} descargado ({len(payload) / 1024:.1f} KB)")
 
 
 def download_dataset(dataset_key: str, root_data_dir: Path, force: bool = False, include_conll: bool = True):
@@ -175,7 +187,12 @@ def download_dataset(dataset_key: str, root_data_dir: Path, force: bool = False,
         print(f"[i] La carpeta de destino ya existe: {dataset_dir}")
         print("    (usa --force para re-extraer si lo deseas)")
     else:
-        extract_zip(archive_path, dataset_dir)
+        try:
+            extract_zip(archive_path, dataset_dir)
+        except zipfile.BadZipFile:
+            archive_path.unlink(missing_ok=True)
+            print(f"[!] {archive_path.name} está corrupto y se ha borrado. Vuelve a ejecutar el script.")
+            return
 
     # Descargas adicionales CoNLL (Hugging Face)
     if include_conll and "hf_conll_urls" in cfg:

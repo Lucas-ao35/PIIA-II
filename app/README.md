@@ -1,130 +1,67 @@
-# Cómo ejecutar una app con streamlit
+# CU-03 — Código del pipeline de extracción clínica
 
-## Requisitos 
+Implementación del camino crítico descrito en `entregas/cu-03-extraccion-clinica/ARCHITECTURE.md`:
 
-- Python con las dependencias detalladas en `requierements.txt` instaladas
-- El proyecto descargado o clonado en el equipo.
-
-## Estructura relevante
-
-La estructura actual del proyecto es la siguiente:
-
-```text
-pia2/
-├── app/
-│   ├── data/
-│   │   ├── archives/
-│   │   │   └── pharmaconer.zip
-│   │   └── pharmaconer/
-│   │       └── conll/
-│   ├── scripts/
-│   │   ├── download_datasets.py
-│   │   └── visualize_data.py
-│   ├── app.py
-│   ├── descargar_datos.bat
-│   ├── ejecutar_app.bat
-│   ├── README_ejecucion_app.md
-│   └── requirements.txt
 ```
-$ \vdots $
-```
-├── .gitattributes
-├── .gitignore
-└── README.md
+texto ─▶ cu03.corpus (BRAT) ─▶ cu03.ner ─▶ cu03.normalization ─▶ cu03.schema (JSON canónico) ─▶ cu03.evaluation
+                                   ▲                                                            │
+                                   └──────────────── app.py (Streamlit) ◀───────────────────────┘
 ```
 
-La carpeta `app/` actualente contiene el código de la aplicación `app/app.py`, las dependencias `app/requirements.txt`, los scripts auxiliares `app/scripts/` y los lanzadores de Windows. Los datos descargados se encuentran dentro de `app/data/`.
+## Puesta en marcha
 
-## Pasos
-
-Sitúate en la carpeta `./app/`
-~~~cmd
-cd app/
-~~~
-
-Deberías encontrar `app.py`, `requirements.txt`, `scripts/` y `data/`.
-
-Instala las dependencias 
-
-```bat
-python -m pip install -r requirements.txt
+```bash
+uv sync --group dev                   # o: pip install -r requirements.txt
+python scripts/download_datasets.py   # descarga PharmaCoNER en data/ (o descargar_datos.bat)
+python -m pytest                      # 48 tests, sin necesidad del corpus (o ejecutar_tests.bat)
+python scripts/evaluate.py            # entrena en train, evalúa en dev (o evaluar.bat)
+streamlit run app.py                  # visualizador (o ejecutar_app.bat)
 ```
 
-Descarga los datos necesarios
+Procesar un texto:
 
-```bat
-python scripts\download_datasets.py
+```bash
+python scripts/run_pipeline.py --text "Se pautó enoxaparina y omeprazol."
+python scripts/evaluate.py --save-model models/baseline     # guarda el modelo
+python scripts/run_pipeline.py --model models/baseline --file caso.txt --out caso.json
 ```
 
-Como alternativa, puedes hacer doble clic en `descargar_datos.bat`.
+## Estructura
 
-Para consultar las opciones disponibles del script, ejecuta:
+| Ruta | Componente (ARCHITECTURE.md) | Spec |
+|---|---|---|
+| `cu03/corpus.py` | Cargador BRAT, mapeo de etiquetas, reparación de offsets | — |
+| `cu03/ner.py` | Extracción de entidades (baseline de diccionario) | `extraccion-entidades.md` |
+| `cu03/normalization.py` | Normalización conservadora a SNOMED CT | `normalizacion-clinica.md` |
+| `cu03/schema.py` | Contrato JSON 1.0 + validación semántica | `generacion-json.md` |
+| `cu03/pipeline.py` | Orquestación texto → JSON validado | — |
+| `cu03/evaluation.py` | Métricas estrictas e informe reproducible | `evaluacion-resultados.md` |
+| `schemas/documento-1.0.schema.json` | JSON Schema publicado (Draft 2020-12) | `generacion-json.md` |
+| `scripts/evaluate.py` | Orden única de evaluación | `evaluacion-resultados.md` |
+| `app.py` | Visualizador: gold vs predicción, pipeline en vivo | — |
+| `tests/` | Criterios de aceptación como tests | todas |
 
-```bat
-python scripts\download_datasets.py --help
-```
+## Resultados actuales (dev, entrenado solo con train)
 
-Las opciones adicionales de descarga dependerán de los argumentos implementados en el propio script.
+| Métrica | Valor | Objetivo spec |
+|---|---|---|
+| F1 micro estricto, etiquetas nativas | 0,763 (P 0,913 · R 0,655) | ≥ 0,75 |
+| F1 micro estricto, `drug` | 0,769 (P 0,940 · R 0,650) | ≥ 0,75 |
+| Normalización aislada: exactitud top-1 | 0,692 | ≥ 0,70 |
+| Normalización aislada: exactitud sobre `matched` | 0,998 | — |
+| JSON válidos contra el esquema | 100 % | 100 % |
 
-Una vez obtenidos los datos ejecuta la aplicación web
+Informe completo en `reports/eval-dev.md`. El cuello de botella es el recall: fármacos no vistos en train
+(bendamustina, imatinib, dasatinib…). La normalización casi nunca se equivoca cuando asigna código, pero
+solo cubre formas vistas.
 
-```bat
-python -m streamlit run app.py
-```
+## Reglas de trabajo
 
-Si la aplicación se inicia correctamente, Streamlit mostrará una dirección local, normalmente:
-
-```text
-http://localhost:8501
-```
-
-Abre esa dirección en el navegador e interactua con la interfaz.
-
-- *Para detener la aplicación, vuelve a la terminal y pulsa **Ctrl+C**.*
-
-- *También puedes iniciar la aplicación haciendo doble clic en `ejecutar_app.bat`.*
-
-## Solución de problemas frecuentes
-
-**`python` no se reconoce como comando**
-
-- Comprueba que Python está instalado y añadido a `PATH`.
-- Cierra y vuelve a abrir la terminal después de instalarlo.
-
-**No se encuentra `requirements.txt` o `app.py`**
-
-- Comprueba que la terminal está en `pia2/app/`.
-- Ejecuta `dir` para verificar que ambos archivos aparecen.
-
-**`No module named streamlit`**
-
-Instala las dependencias:
-
-```bat
-python -m pip install -r requirements.txt
-```
-
-Después, vuelve a ejecutar:
-
-```bat
-python -m streamlit run app.py
-```
-
-**La aplicación no encuentra los datos**
-
-- Comprueba que existen los archivos y directorios esperados dentro de `app/data/`.
-- Ejecuta el script de descarga si los datos necesarios no están disponibles.
-- Revisa las rutas utilizadas por el código de la aplicación para confirmar qué ubicación espera.
-
-**El archivo `.bat` falla**
-
-- Ejecuta el comando equivalente desde `cmd` para ver el error completo.
-- Comprueba que el lanzador se encuentra en `app/` y que las dependencias están instaladas.
-
-**El puerto 8501 está ocupado**
-
-Prueba a utilizar el puerto 8502:
-
-```bat
-python -m streamlit run app.py --server.port 8502
-```
+- **El test no se toca para ajustar.** Los parámetros (`--min-precision`, `--min-agreement`) se eligen en dev.
+  La evaluación final es `python scripts/evaluate.py --split test --train-splits train dev`, una sola vez.
+- **Mapeo de etiquetas** en `cu03/corpus.py::LABEL_TO_TYPE`: `NORMALIZABLES` y `NO_NORMALIZABLES` → `drug`;
+  `PROTEINAS` y `UNCLEAR` se evalúan pero no se emiten (no existen en el esquema 1.0).
+- **Licencia SNOMED CT**: `data/` y `models/` están en `.gitignore`. `coding.display` es la forma más
+  frecuente en el corpus, no la descripción oficial de SNOMED CT.
+- **Defecto del gold**: `S0211-69952015000200015-1` (train) tiene 5 offsets desplazados; el cargador los
+  repara y lo registra.

@@ -13,6 +13,11 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
+from cu03.corpus import find_data_dir, load_split
+from cu03.ner import Mention
+from cu03.normalization import NormalizationResult
+from cu03.pipeline import Pipeline
+
 # -----------------------------------------------------------------------------
 # Configuración inicial de Streamlit
 # -----------------------------------------------------------------------------
@@ -94,62 +99,15 @@ st.markdown(
 # -----------------------------------------------------------------------------
 # Funciones de carga y parseo de datos (con caché)
 # -----------------------------------------------------------------------------
-def parse_brat_file(ann_path: Path, txt_path: Path):
-    """Parsea archivos .ann y .txt del corpus en formato BRAT."""
-    if not txt_path.exists():
-        return None
-
-    raw_text = txt_path.read_text(encoding="utf-8-sig").replace("\r\n", "\n")
-    lines = ann_path.read_text(encoding="utf-8-sig").splitlines() if ann_path.exists() else []
-
-    notes = {}
-    for line in lines:
-        if line.startswith("#"):
-            parts = line.split("\t")
-            if len(parts) >= 3:
-                nparts = parts[1].split()
-                if len(nparts) == 2:
-                    notes[nparts[1]] = parts[2].strip()
-
-    entities = []
-    for line in lines:
-        if line.startswith("T"):
-            parts = line.split("\t")
-            if len(parts) >= 3:
-                tid = parts[0]
-                meta_parts = parts[1].split()
-                cat = meta_parts[0]
-                start = int(meta_parts[1])
-                end = int(meta_parts[-1])
-                term_text = parts[2].strip()
-                code = notes.get(tid, None)
-
-                norm_status = "mapped" if (code and code != "<null>") else "not_found"
-
-                entities.append({
-                    "id": tid,
-                    "label": cat,
-                    "start": start,
-                    "end": end,
-                    "text": term_text,
-                    "code": code if code != "<null>" else None,
-                    "norm_status": norm_status,
-                })
-
-    entities.sort(key=lambda x: (x["start"], x["end"]))
-    return {"text": raw_text, "entities": entities}
+def _ann_to_dict(a):
+    return {"id": a.id, "label": a.label, "start": a.start, "end": a.end, "text": a.text,
+            "code": a.code, "norm_status": "matched" if a.code else "not_found"}
 
 
 @st.cache_data(show_spinner="Cargando y parseando corpus PharmaCoNER...")
 def load_dataset(data_dir_str: str):
-    """Carga y procesa las tres particiones oficiales (train, dev, test)."""
+    """Carga las tres particiones oficiales con el cargador del pipeline (cu03.corpus)."""
     data_dir = Path(data_dir_str)
-    splits = [
-        ("train", Path("train-set_1.1") / "train" / "subtrack1"),
-        ("dev", Path("dev-set_1.1") / "dev" / "subtrack1"),
-        ("test", Path("test-set_1.1") / "test" / "subtrack1"),
-    ]
-
     docs = []
     stats = {
         "by_split": Counter(),
@@ -158,45 +116,72 @@ def load_dataset(data_dir_str: str):
         "code_counter": Counter(),
         "code_to_names": defaultdict(Counter),
         "entities_per_doc": [],
+        "repaired": [],
     }
-
     bg_dir = data_dir / "background-set" / "background"
     stats["background_docs"] = len(list(bg_dir.glob("*.txt"))) if bg_dir.exists() else 0
 
-    for split_name, rel_path in splits:
-        sub_dir = data_dir / rel_path
-        if not sub_dir.exists():
+    for split_name in ("train", "dev", "test"):
+        try:
+            split_docs = load_split(split_name, data_dir)
+        except FileNotFoundError:
             continue
-
-        ann_files = sorted(sub_dir.glob("*.ann"))
-        for ann_file in ann_files:
-            doc_id = ann_file.stem
-            txt_file = ann_file.with_suffix(".txt")
-            parsed = parse_brat_file(ann_file, txt_file)
-            if not parsed:
-                continue
-
-            ents = parsed["entities"]
+        for d in split_docs:
+            ents = [_ann_to_dict(a) for a in d.annotations]
             stats["by_split"][split_name] += 1
             stats["entities_per_doc"].append(len(ents))
-
+            stats["repaired"].extend(f"{d.id} {r}" for r in d.repaired)
             for ent in ents:
                 stats["by_label"][ent["label"]] += 1
                 stats["terms_by_label"][ent["label"]][ent["text"].lower()] += 1
                 if ent["code"]:
                     stats["code_counter"][ent["code"]] += 1
                     stats["code_to_names"][ent["code"]][ent["text"].lower()] += 1
-
             docs.append({
-                "id": doc_id,
+                "id": d.id,
                 "split": split_name,
-                "char_length": len(parsed["text"]),
+                "char_length": len(d.text),
                 "entities_count": len(ents),
                 "entities": ents,
-                "raw_text": parsed["text"],
+                "raw_text": d.text,
             })
-
     return docs, stats
+
+
+@st.cache_resource(show_spinner="Entrenando el pipeline baseline sobre train...")
+def get_pipeline(data_dir_str: str) -> Pipeline:
+    return Pipeline.from_corpus(("train",), Path(data_dir_str))
+
+
+def predict_entities(pipe: Pipeline, text: str) -> list:
+    mentions = pipe.extract(text)
+    out = []
+    for i, (m, r) in enumerate(zip(mentions, pipe.normalize(mentions)), 1):
+        out.append({"id": f"P{i}", "label": m.label, "start": m.start, "end": m.end, "text": m.text,
+                    "code": r.code, "norm_status": r.status, "confidence": m.score})
+    return out
+
+
+def canonical_json(pipe: Pipeline, text: str, entities: list, doc_id) -> dict:
+    """Construye y valida el JSON canónico (specs/generacion-json.md) para gold o predicción."""
+    mentions = [Mention(e["text"], e["label"], e["start"], e["end"], e.get("confidence")) for e in entities]
+    results = [
+        NormalizationResult("matched", "SNOMED_CT", e["code"], pipe.normalizer.display.get(e["code"], e["text"]))
+        if e["norm_status"] == "matched" and e["code"] else NormalizationResult(e["norm_status"])
+        for e in entities
+    ]
+    return pipe.build_document(text, mentions, results, doc_id)
+
+
+def doc_metrics(gold: list, pred: list) -> dict:
+    g = {(e["start"], e["end"], e["label"]) for e in gold}
+    p = {(e["start"], e["end"], e["label"]) for e in pred}
+    tp = len(g & p)
+    prec = tp / len(p) if p else 0.0
+    rec = tp / len(g) if g else 0.0
+    f1 = 2 * prec * rec / (prec + rec) if prec + rec else 0.0
+    return {"tp": tp, "fp": len(p - g), "fn": len(g - p), "p": prec, "r": rec, "f1": f1,
+            "fp_set": p - g, "fn_set": g - p}
 
 
 def render_highlighted_text(raw_text: str, entities: list, active_labels: set) -> str:
@@ -223,7 +208,8 @@ def render_highlighted_text(raw_text: str, entities: list, active_labels: set) -
         label_class = ent["label"].lower().replace("_", "-")
         code_tag = f"<span class='sn-tag'>{html.escape(ent['code'])}</span>" if ent.get("code") else ""
         code_str = ent.get('code') or 'no mapeado'
-        open_tag = f"<mark class='ent-mark ent-{label_class}' title='{ent['label']} | SNOMED: {code_str}'>"
+        title = html.escape(f"{ent['label']} | SNOMED: {code_str} | {ent.get('norm_status', '')}", quote=True)
+        open_tag = f"<mark class='ent-mark ent-{label_class}' title='{title}'>"
         close_tag = f"{code_tag}</mark>"
 
         orig_slice = "".join(chars[s:e])
@@ -239,17 +225,7 @@ def render_highlighted_text(raw_text: str, entities: list, active_labels: set) -
 # Carga principal de datos
 # -----------------------------------------------------------------------------
 PROJECT_ROOT = Path(__file__).resolve().parent
-CANDIDATE_DATA_DIRS = [
-    PROJECT_ROOT / "data" / "pharmaconer" / "pharmaconer",
-    PROJECT_ROOT / "data" / "pharmaconer",
-    Path("data/pharmaconer/pharmaconer").resolve(),
-    Path("data/pharmaconer").resolve(),
-]
-found_data_dir = next(
-    (p for p in CANDIDATE_DATA_DIRS if p.exists() and (p / "train-set_1.1").exists()),
-    CANDIDATE_DATA_DIRS[0],
-)
-DATA_DIR = str(found_data_dir)
+DATA_DIR = str(find_data_dir(PROJECT_ROOT))
 docs, stats = load_dataset(DATA_DIR)
 
 if not docs:
@@ -261,6 +237,8 @@ if not docs:
         "```bash\nuv run python scripts/download_datasets.py\n```"
     )
     st.stop()
+
+pipe = get_pipeline(DATA_DIR)
 
 
 # -----------------------------------------------------------------------------
@@ -291,10 +269,10 @@ with st.sidebar:
     # Botones de acceso rápido
     col_q1, col_q2 = st.columns(2)
     with col_q1:
-        if st.button("⭐ Caso 0013-1", use_container_width=True):
+        if st.button("⭐ Caso 0013-1", width="stretch"):
             st.session_state["target_doc_id"] = "S0004-06142006000700013-1"
     with col_q2:
-        if st.button("🎲 Aleatorio", use_container_width=True):
+        if st.button("🎲 Aleatorio", width="stretch"):
             st.session_state["target_doc_id"] = random.choice(filtered_docs or docs)["id"]
 
     # Selector de documento
@@ -308,6 +286,13 @@ with st.sidebar:
         index=default_idx if doc_ids else 0,
     )
     st.session_state["target_doc_id"] = selected_doc_id
+
+    st.markdown("---")
+    source = st.radio(
+        "🧠 Anotaciones mostradas",
+        ["Gold (corpus)", "Predicción del pipeline"],
+        help="La predicción usa el baseline entrenado solo con la partición train.",
+    )
 
     st.markdown("---")
     st.markdown("##### 🏷️ Categorías a resaltar")
@@ -331,13 +316,17 @@ with st.sidebar:
 # Documento activo
 # -----------------------------------------------------------------------------
 current_doc = next((d for d in docs if d["id"] == selected_doc_id), docs[0])
+gold_entities = current_doc["entities"]
+pred_entities = predict_entities(pipe, current_doc["raw_text"])
+shown_entities = pred_entities if source.startswith("Predicción") else gold_entities
 
 
 # -----------------------------------------------------------------------------
 # Pestañas Principales (Tabs)
 # -----------------------------------------------------------------------------
-tab_viewer, tab_analytics, tab_about = st.tabs([
+tab_viewer, tab_live, tab_analytics, tab_about = st.tabs([
     "📖 Visor de Casos Clínicos",
+    "🧪 Pipeline en vivo",
     "📊 Estadísticas del Corpus",
     "ℹ️ Arquitectura & Caso de Uso",
 ])
@@ -354,7 +343,7 @@ with tab_viewer:
     with c2:
         st.metric("Partición", current_doc["split"].upper())
     with c3:
-        st.metric("Menciones", current_doc["entities_count"])
+        st.metric("Menciones", len(shown_entities))
     with c4:
         st.metric("Longitud", f"{current_doc['char_length']} car.")
 
@@ -371,6 +360,22 @@ with tab_viewer:
         unsafe_allow_html=True,
     )
 
+    if source.startswith("Predicción"):
+        if current_doc["split"] == "train":
+            st.warning("Este documento pertenece a train: el baseline lo ha visto al entrenar, "
+                       "las métricas están infladas. Usa dev para analizar errores.")
+        dm = doc_metrics(gold_entities, pred_entities)
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("Precisión (doc)", f"{dm['p']:.2f}")
+        k2.metric("Recall (doc)", f"{dm['r']:.2f}")
+        k3.metric("F1 estricto (doc)", f"{dm['f1']:.2f}")
+        k4.metric("FP / FN", f"{dm['fp']} / {dm['fn']}")
+        if dm["fp_set"] or dm["fn_set"]:
+            with st.expander("Ver errores frente al gold"):
+                txt = current_doc["raw_text"]
+                st.write("**Falsos positivos:** " + (", ".join(f"`{txt[s:e]}` ({l})" for s, e, l in sorted(dm["fp_set"])) or "—"))
+                st.write("**Falsos negativos:** " + (", ".join(f"`{txt[s:e]}` ({l})" for s, e, l in sorted(dm["fn_set"])) or "—"))
+
     # Contenedor a dos columnas: Texto vs Menciones
     col_text, col_info = st.columns([3, 2])
 
@@ -378,14 +383,14 @@ with tab_viewer:
         st.markdown("##### 📄 Texto Clínico Anotado")
         highlighted_html = render_highlighted_text(
             current_doc["raw_text"],
-            current_doc["entities"],
+            shown_entities,
             active_labels,
         )
         st.markdown(highlighted_html, unsafe_allow_html=True)
 
     with col_info:
         st.markdown("##### 📋 Menciones Extraídas & Normalización")
-        if current_doc["entities"]:
+        if shown_entities:
             # Tabla de entidades
             df_entities = pd.DataFrame([
                 {
@@ -395,20 +400,20 @@ with tab_viewer:
                     "SNOMED CT": e["code"] or "—",
                     "Estado": e["norm_status"],
                 }
-                for e in current_doc["entities"]
+                for e in shown_entities
             ])
-            st.dataframe(df_entities, use_container_width=True, hide_index=True)
+            st.dataframe(df_entities, width="stretch", hide_index=True)
 
             # Inspector interactivo de mención seleccionada
             st.markdown("---")
             st.markdown("##### 🔎 Inspector de Entidad")
-            entity_names = [f"#{i+1}: {e['text']} ({e['label']})" for i, e in enumerate(current_doc["entities"])]
+            entity_names = [f"#{i+1}: {e['text']} ({e['label']})" for i, e in enumerate(shown_entities)]
             selected_ent_idx = st.selectbox(
                 "Seleccionar entidad para inspeccionar:",
                 range(len(entity_names)),
                 format_func=lambda i: entity_names[i],
             )
-            ent_obj = current_doc["entities"][selected_ent_idx]
+            ent_obj = shown_entities[selected_ent_idx]
 
             st.write(f"**Término exacto:** `{ent_obj['text']}`")
             st.write(f"**Categoría:** `{ent_obj['label']}`")
@@ -420,35 +425,18 @@ with tab_viewer:
                 snomed_url = f"https://browser.ihtsdotools.org/?perspective=full&conceptId1={ent_obj['code']}"
                 st.markdown(f"[🌐 Abrir concepto `{ent_obj['code']}` en el SNOMED CT Browser oficial ↗]({snomed_url})")
             else:
-                st.info("Sin código terminológico unívoco asignado (marcado como `not_found`).")
+                st.info(f"Sin código terminológico unívoco asignado (estado `{ent_obj['norm_status']}`).")
         else:
             st.info("Este caso clínico no contiene menciones anotadas en el subtrack.")
 
     # Expander con el JSON Canónico según la especificación técnica
     st.markdown("---")
     with st.expander("⚙️ Ver Contrato JSON Canónico (specs/generacion-json.md)", expanded=False):
-        canonical_json = {
-            "schema_version": "1.0",
-            "document_id": current_doc["id"],
-            "language": "es",
-            "source_text": current_doc["raw_text"],
-            "entities": [
-                {
-                    "text": e["text"],
-                    "type": "farmaco" if e["label"] == "NORMALIZABLES" else ("proteina" if e["label"] == "PROTEINAS" else e["label"].lower()),
-                    "start": e["start"],
-                    "end": e["end"],
-                    "coding": {
-                        "system": "SNOMED_CT" if e["code"] else None,
-                        "code": e["code"],
-                        "display": e["text"] if e["code"] else None,
-                    },
-                    "normalization_status": e["norm_status"],
-                }
-                for e in current_doc["entities"]
-            ],
-        }
-        json_str = json.dumps(canonical_json, indent=2, ensure_ascii=False)
+        canonical = canonical_json(pipe, current_doc["raw_text"], shown_entities, current_doc["id"])
+        st.caption("Validado contra el esquema 1.0. PROTEINAS y UNCLEAR no se emiten: no pertenecen a las "
+                   "categorías del esquema (ver mapeo en cu03/corpus.py). `display` es la forma más frecuente "
+                   "en el corpus, no la descripción SNOMED CT.")
+        json_str = json.dumps(canonical, indent=2, ensure_ascii=False)
         st.code(json_str, language="json")
         st.download_button(
             label="💾 Descargar JSON canónico del caso",
@@ -459,7 +447,31 @@ with tab_viewer:
 
 
 # -----------------------------------------------------------------------------
-# TAB 2: ANALYTICS & ESTADÍSTICAS DEL CORPUS
+# TAB 2: PIPELINE EN VIVO
+# -----------------------------------------------------------------------------
+with tab_live:
+    st.subheader("🧪 Procesar un texto clínico")
+    st.caption("Usa solo textos sintéticos o de corpus públicos: nunca datos reales de pacientes.")
+    sample = ("Mujer de 63 años en tratamiento con omeprazol y enoxaparina. Se añadió ácido "
+              "acetilsalicílico y se suspendió la heparina. PSA dentro de la normalidad.")
+    live_text = st.text_area("Texto de entrada", value=sample, height=160)
+    if st.button("▶️ Ejecutar pipeline", type="primary"):
+        ents = predict_entities(pipe, live_text)
+        st.markdown(render_highlighted_text(live_text, ents, active_labels), unsafe_allow_html=True)
+        doc_json = canonical_json(pipe, live_text, ents, "texto-libre")
+        counts = Counter(e["normalization_status"] for e in doc_json["entities"])
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Menciones detectadas", len(ents))
+        c2.metric("matched", counts.get("matched", 0))
+        c3.metric("ambiguous", counts.get("ambiguous", 0))
+        c4.metric("not_found", counts.get("not_found", 0))
+        live_json = json.dumps(doc_json, indent=2, ensure_ascii=False)
+        st.code(live_json, language="json")
+        st.download_button("💾 Descargar JSON", live_json, "texto-libre_cu03.json", "application/json")
+
+
+# -----------------------------------------------------------------------------
+# TAB 3: ANALYTICS & ESTADÍSTICAS DEL CORPUS
 # -----------------------------------------------------------------------------
 with tab_analytics:
     st.subheader("📊 Métricas Globales del Corpus PharmaCoNER")
@@ -474,6 +486,10 @@ with tab_analytics:
         st.metric("Casos Background", f"{stats['background_docs']:,}")
     with m4:
         st.metric("Densidad Media", f"{round(total_entities / len(docs), 2)} menciones/caso")
+
+    if stats["repaired"]:
+        with st.expander(f"⚠️ {len(stats['repaired'])} anotaciones gold con offsets reparados al cargar"):
+            st.code("\n".join(stats["repaired"]))
 
     st.markdown("---")
     col_chart1, col_chart2 = st.columns(2)
@@ -496,7 +512,7 @@ with tab_analytics:
             )
             .properties(height=260)
         )
-        st.altair_chart(chart_cat, use_container_width=True)
+        st.altair_chart(chart_cat, width="stretch")
 
     with col_chart2:
         st.markdown("##### 📂 Casos por Partición Oficial")
@@ -514,7 +530,7 @@ with tab_analytics:
             )
             .properties(height=260)
         )
-        st.altair_chart(chart_split, use_container_width=True)
+        st.altair_chart(chart_split, width="stretch")
 
     st.markdown("---")
     col_terms, col_codes = st.columns(2)
@@ -533,7 +549,7 @@ with tab_analytics:
             )
             .properties(height=350)
         )
-        st.altair_chart(chart_terms, use_container_width=True)
+        st.altair_chart(chart_terms, width="stretch")
 
     with col_codes:
         st.markdown("##### 🌐 Top Códigos SNOMED CT Más Asignados")
@@ -556,11 +572,11 @@ with tab_analytics:
             )
             .properties(height=350)
         )
-        st.altair_chart(chart_codes, use_container_width=True)
+        st.altair_chart(chart_codes, width="stretch")
 
 
 # -----------------------------------------------------------------------------
-# TAB 3: ACERCA DEL PROYECTO & ARQUITECTURA
+# TAB 4: ACERCA DEL PROYECTO & ARQUITECTURA
 # -----------------------------------------------------------------------------
 with tab_about:
     st.subheader("Caso de Uso CU-03 PIIA2")
@@ -578,5 +594,9 @@ with tab_about:
         2. **Extracción de Entidades (NER):** Detección de fármacos, enfermedades, síntomas y procedimientos con offsets de caracteres exactos.
         3. **Normalización Terminológica:** Mapeo a identificadores de **SNOMED CT** y **CIE-10-ES**.
         4. **Salida Estructurada Canónica:** Generación y validación de esquemas **JSON** e interoperabilidad con recursos **HL7 FHIR**.
+
+        **Implementado (camino crítico):** cargador BRAT → NER baseline de diccionario → normalización conservadora
+        a SNOMED CT (`matched` / `ambiguous` / `not_found`) → JSON canónico validado → evaluación
+        (`python scripts/evaluate.py`). FHIR queda como ampliación.
         """
     )

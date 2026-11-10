@@ -1,0 +1,10 @@
+# Corpus descargados (se obtienen con scripts/download_datasets.py; no se redistribuyen)
+data/
+# Modelos entrenados: contienen códigos SNOMED CT derivados del corpus (licencia pendiente de confirmar)
+models/
+# Informes generados localmente; versionad solo los que se citen en la entrega
+reports/*.json
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc

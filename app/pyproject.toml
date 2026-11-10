@@ -1,0 +1,22 @@
+[project]
+name = "cu03-extraccion-clinica"
+version = "0.1.0"
+description = "CU-03 PIIA2: extracción y estructuración de información clínica en español (PharmaCoNER, SNOMED CT, JSON, FHIR)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "jsonschema>=4.21",
+    "pandas>=2.2",
+    "altair>=5.3",
+    "streamlit>=1.46",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.uv]
+package = false
