@@ -10,12 +10,12 @@ El proyecto necesita, desde el primer día, textos clínicos en español con ano
 
 ## Decisión
 
-Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y proteínas) como corpus inicial del proyecto, en su distribución original en **formato BRAT** (pares `.txt` + `.ann`), consumido por un cargador propio que parsea las anotaciones y las expone con sus offsets de caracteres y códigos SNOMED CT gold. La prioridad de implementación es el camino crítico **fármacos → detección → normalización → JSON → métricas**; las demás entidades (enfermedades, síntomas, procedimientos) quedan como ampliación con DisTEMIST, SympTEMIST y MedProcNER tras comprobar compatibilidad de etiquetas.
+Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y proteínas) como corpus inicial del proyecto, en su distribución original en **formato BRAT** (pares `.txt` + `.ann`), consumido por un cargador propio que parsea las anotaciones y las expone con sus offsets de caracteres y códigos SNOMED CT gold. La prioridad de implementación es el camino crítico **fármacos → detección → normalización → JSON → métricas**, las demás entidades (enfermedades, síntomas, procedimientos) quedan como ampliación con DisTEMIST, SympTEMIST y MedProcNER tras comprobar compatibilidad de etiquetas.
 
 ## Motivación
 
-- Es un corpus clínico en **español** con anotación gold de menciones, publicado para investigación (plantrack/BioNLP), lo que permite una evaluación honesta sin tocar datos de pacientes.
-- Incluye ya la **normalización a SNOMED CT** (subtrack 2), de modo que las menciones gold llevan código: se pueden evaluar extracción y normalización por separado sobre el mismo recurso.
+- Es un corpus clínico en **español** con anotación gold de menciones, publicado para investigación, lo que permite una evaluación honesta sin tocar datos de pacientes.
+- Incluye ya la **normalización a SNOMED CT**, de modo que las menciones gold llevan código: se pueden evaluar extracción y normalización por separado sobre el mismo recurso.
 - Tiene **particiones oficiales train / dev / test**, lo que encaja con el requisito de que el conjunto de prueba no se use para entrenar ni ajustar.
 - El formato BRAT es texto plano y autoexplicativo: una anotación por línea con tipo y offsets, sin infraestructura de carga pesada.
 - Su temática (fármacos) coincide con la recomendación recibida y con la terminología (SNOMED CT) que usa el referente asistencial.
@@ -23,14 +23,14 @@ Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y pro
 ## Alternativas consideradas
 
 - **DisTEMIST / SympTEMIST / MedProcNER desde el inicio**: cubren las cuatro categorías del proyecto, pero multiplican el trabajo de mapeo de etiquetas y de verificación de compatibilidad antes de tener nada funcionando de punta a punta. Se descartaron como punto de partida y quedan como ampliación prevista.
-- **CodiEsp**: corpus en español con códigos CIE-10, pero su tarea es codificación de documento completo, no detección de menciones con offsets; no encaja con la separación extracción/normalización que queremos evaluar.
+- **CodiEsp**: corpus en español con códigos CIE-10, pero su tarea es codificación de documento completo, no detección de menciones con offsets, no encaja con la separación extracción/normalización que queremos evaluar.
 - **Solo textos sintéticos**: sin coste de licencias y sin datos personales, pero sin anotación gold externa la evaluación sería circular (validaríamos contra nosotros mismos). Se usan solo como casos de prueba auxiliares.
 - **Historias clínicas reales**: fuera de alcance por seguridad y privacidad desde la Entrega 1.
 
 ## Consecuencias
 
-- La primera versión del sistema se centra en fármacos y proteínas; las demás categorías no tendrán código hasta que se incorporen sus corpus.
-- El cargador BRAT (`dataloaders`) queda como única pieza que conoce el formato físico; añadir un corpus nuevo es añadir un parser, no tocar el pipeline.
+- La primera versión del sistema se centra en fármacos y proteínas, las demás categorías no tendrán código hasta que se incorporen sus corpus.
+- El cargador BRAT (`dataloaders`) queda como única pieza que conoce el formato físico, añadir un corpus nuevo es añadir un parser, no tocar el pipeline.
 - Las etiquetas de PharmaCoNER (`NORMALIZABLES`, `PROTEINAS`, `UNCLEAR`, `NO_NORMALIZABLES`) deben mapearse a las categorías del proyecto y ese mapeo debe documentarse.
 
 ## Referencias

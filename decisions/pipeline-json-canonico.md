@@ -16,14 +16,14 @@ Estructurar el sistema como un **pipeline secuencial de componentes desacoplados
 
 - **Aislamiento de errores**: un error de normalización (código equivocado) no debe confundirse con uno de extracción (mención no detectada). Con etapas desacopladas que intercambian un documento común, cada métrica mide una cosa.
 - **Trazabilidad**: el JSON conserva `source_text` y los offsets exactos, así que cualquier resultado puede verificarse contra el texto original sin re-ejecutar nada.
-- **Testabilidad**: cada componente se prueba con entradas y salidas JSON, sin acoplarse a los internos de los demás; las baterías de pruebas exigidas por las specs se definen naturalmente sobre el contrato.
-- **Extensibilidad**: la salida FHIR es una etapa más que consume el contrato; si cambia el modelo de NER o el normalizador, nada más se entera mientras respeten el esquema.
+- **Testabilidad**: cada componente se prueba con entradas y salidas JSON, sin acoplarse a los internos de los demás, las baterías de pruebas exigidas por las specs se definen naturalmente sobre el contrato.
+- **Extensibilidad**: la salida FHIR es una etapa más que consume el contrato, si cambia el modelo de NER o el normalizador, nada más se entera mientras respeten el esquema.
 
 ## Alternativas consideradas
 
-- **Script monolítico de texto a FHIR**: más rápido de escribir la primera semana, pero funde extracción, normalización y serialización en un solo bloque; imposible evaluar etapas por separado y cualquier cambio de modelo obliga a rehacer el análisis completo. Descartado.
+- **Script monolítico de texto a FHIR**: más rápido de escribir la primera semana, pero funde extracción, normalización y serialización en un solo bloque, imposible evaluar etapas por separado y cualquier cambio de modelo obliga a rehacer el análisis completo. Descartado.
 - **Generar FHIR directamente desde el NER, sin JSON intermedio**: eliminaría una etapa, pero acoplaría la salida interoperable al detalle del modelo y violaría la spec de FHIR, que exige partir del subconjunto normalizado y documentar qué no se representa. Descartado.
-- **Almacenar resultados en una base de datos (SQL/documental)** como representación principal: útil para volumen y consulta, pero el prototipo no lo necesita y añadiría una pieza de infraestructura que mantener; el JSON validado con esquema cubre el caso de uso académico. Aplazado (figura como fuera de alcance en las specs).
+- **Almacenar resultados en una base de datos (SQL/documental)** como representación principal: útil para volumen y consulta, pero el prototipo no lo necesita y añadiría una pieza de infraestructura que mantener, el JSON validado con esquema cubre el caso de uso académico. Aplazado (figura como fuera de alcance en las specs).
 
 ## Consecuencias
 
@@ -33,8 +33,6 @@ Estructurar el sistema como un **pipeline secuencial de componentes desacoplados
 
 ## Referencias
 
-- Contrato de salida: [`specs/generacion-json.md`](../specs/generacion-json.md)
-- Normalización integrada en el mismo documento: [`specs/normalizacion-clinica.md`](../specs/normalizacion-clinica.md)
 - Especificación JSON Schema: [json-schema.org](https://json-schema.org/)
 - Validación en Python: [python-jsonschema (readthedocs)](https://python-jsonschema.readthedocs.io/)
 

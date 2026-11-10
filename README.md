@@ -4,7 +4,7 @@
 
 En este proyecto se propone definir un prototipo de Procesamiento del Lenguaje Natural (PLN) que lea textos clínicos en español, principalmente casos publicados y ejemplos sintéticos, y los transforme en datos estructurados. El flujo previsto extraerá menciones clínicas (enfermedades, síntomas, fármacos, procedimientos, ...), intentará normalizarlas con terminologías de referencia cuando haya correspondencia justificable y generará JSON; contempla además una representación inicial en recursos HL7 FHIR. En esta entrega se especifican esas funcionalidades, pero todavía no se implementan.
 
-La arquitectura que soporta estas funcionalidades está documentada en [ARCHITECTURE.md](ARCHITECTURE.md), y las decisiones de implementación tomadas por el equipo, en la carpeta [decisions/](decisions/).
+La arquitectura que soporta estas funcionalidades está documentada en `ARCHITECTURE.md`, y las decisiones de implementación tomadas por el equipo, en la carpeta `decisions/`.
 
 El caso de uso responde a que una parte importante de la información clínica se expresa en texto libre, lo que dificulta su consulta, análisis y explotación estadística. El proyecto busca facilitar el análisis posterior, la investigación biomédica y la interoperabilidad con sistemas de información sanitaria, no sustituir el criterio de profesionales sanitarios.
 
@@ -128,7 +128,7 @@ entregas/
 ```
 
 - `README.md`: visión general, motivación, alcance, datos candidatos, equipo y organización del proyecto.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md): arquitectura de la solución — componentes del pipeline, flujo end-to-end y estado de implementación.
+- `ARCHITECTURE.md`: arquitectura de la solución — componentes del pipeline, flujo end-to-end y estado de implementación.
 - `specs/evaluacion-resultados.md`: protocolo y métricas para comprobar la calidad del prototipo.
 - `specs/extraccion-entidades.md`: comportamiento esperado al detectar y clasificar menciones clínicas.
 - `specs/generacion-fhir.md`: conversión del subconjunto acordado de datos a recursos FHIR y validación.
@@ -137,10 +137,10 @@ entregas/
 
 ### Decisiones de implementación (ADRs)
 
-- [`decisions/corpus-pharmaconer-brat.md`](decisions/corpus-pharmaconer-brat.md): PharmaCoNER 1.1 en formato BRAT como corpus inicial, con los fármacos como camino crítico.
-- [`decisions/pipeline-json-canonico.md`](decisions/pipeline-json-canonico.md): pipeline por etapas desacopladas con el JSON canónico versionado como contrato entre componentes.
-- [`decisions/visualizador-streamlit.md`](decisions/visualizador-streamlit.md): Streamlit como capa de exploración visual del corpus y de los resultados.
-- [`decisions/normalizacion-conservadora.md`](decisions/normalizacion-conservadora.md): política de normalización conservadora con estados explícitos (`matched`, `not_found`, `ambiguous`).
+- `decisions/corpus-pharmaconer-brat.md`: PharmaCoNER 1.1 en formato BRAT como corpus inicial, con los fármacos como camino crítico.
+- `decisions/pipeline-json-canonico.md`: pipeline por etapas desacopladas con el JSON canónico versionado como contrato entre componentes.
+- `decisions/visualizador-streamlit.md`: Streamlit como capa de exploración visual del corpus y de los resultados.
+- `decisions/normalizacion-conservadora.md`: política de normalización conservadora con estados explícitos (`matched`, `not_found`, `ambiguous`).
 
 
 

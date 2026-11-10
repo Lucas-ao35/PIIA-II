@@ -15,19 +15,19 @@ Implementar el visualizador como **aplicación Streamlit** (`app.py`) que consum
 ## Motivación
 
 - **Ciclo corto de desarrollo**: la aplicación completa (parser, resaltado por offsets, estadísticas, inspector JSON) cabe en un único script de Python sin frontend ni API que mantener, lo que deja el tiempo del equipo para el pipeline, que es el núcleo evaluable del proyecto.
-- **Alineado con el stack**: el equipo ya trabaja con pandas; Streamlit lo consume de forma nativa (tablas, `st.dataframe`, caché de carga) y Altair viene integrado para los gráficos.
+- **Alineado con el stack**: el equipo ya trabaja con pandas, Streamlit lo consume de forma nativa (tablas, `st.dataframe`, caché de carga) y Altair viene integrado para los gráficos.
 - **Útil para la depuración cualitativa**: ver el texto con las menciones marcadas y el código al lado es la forma más rápida de detectar errores de offsets o de mapeo de etiquetas antes de ejecutar la evaluación cuantitativa.
-- **Buen vehículo de demostración**: para un proyecto académico con tutoría (DIH DATAlife), una interfaz navegable comunica el caso de uso mucho mejor que un notebook.
+- **Buen vehículo de demostración**: para un proyecto académico con tutoría, una interfaz navegable comunica el caso de uso mucho mejor que un notebook.
 
 ## Alternativas consideradas
 
-- **Notebooks de Jupyter**: excelentes para análisis exploratorio puntual, pero el estado se degrada (celdas ejecutadas en desorden), no hay una vista compartida y estable para el tutor, y las visualizaciones no se reutilizan fácilmente. Descartado como herramienta principal; se pueden usar para análisis sueltos.
-- **Aplicación web propia (Flask/FastAPI + frontend)**: máximo control, pero obliga a mantener API, rutas y frontend para un prototipo local; esfuerzo desproporcionado para el valor que aporta. Descartado.
+- **Notebooks de Jupyter**: excelentes para análisis exploratorio puntual, pero el estado se degrada (celdas ejecutadas en desorden), no hay una vista compartida y estable para el tutor, y las visualizaciones no se reutilizan fácilmente. Descartado como herramienta principal, se pueden usar para análisis sueltos.
+- **Aplicación web propia (Flask/FastAPI + frontend)**: máximo control, pero obliga a mantener API, rutas y frontend para un prototipo local, esfuerzo desproporcionado para el valor que aporta. Descartado.
 - **Herramienta de BI (Grafana, Metabase, Power BI)**: potente para métricas agregadas, pero requiere servir los datos en una base de datos o métricas, no maneja bien el caso central de "leer un documento con spans resaltados y offsets verificables", y añade infraestructura. Descartado.
 
 ## Consecuencias
 
-- El resaltado de menciones se implementa insertando marcas HTML sobre el texto original por offsets; hay que mantener el filtro de solapamientos (quedarse con la mención más larga) y escapar el HTML para no romper la vista.
+- El resaltado de menciones se implementa insertando marcas HTML sobre el texto original por offsets, hay que mantener el filtro de solapamientos (quedarse con la mención más larga) y escapar el HTML para no romper la vista.
 - La carga del corpus se cachea (`st.cache_data`) para no re-parsear los archivos BRAT en cada interacción.
 - Al ser una capa de solo lectura, la evolución del pipeline no obliga a reescribir la app: basta con que las etapas nuevas respeten el contrato JSON canónico.
 
