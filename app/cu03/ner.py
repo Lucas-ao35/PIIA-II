@@ -22,9 +22,14 @@ from pathlib import Path
 
 from .corpus import Document
 
+# Emplemaos una expresión regular para dividir el texto en palabras o signos de puntuación independientes.
 TOKEN_RE = re.compile(r"\w+|[^\w\s]", re.UNICODE)
 
 
+"""
+Representa una entidad detectada en el texto con su fragmento (text), categoria, posiciones inicio/fin
+y un nivel de confianza (score correspondiente con la precisión estimada).
+"""
 @dataclass(frozen=True)
 class Mention:
     text: str
@@ -34,10 +39,14 @@ class Mention:
     score: float | None = None
 
 
+# Retorna una lista de tuplas (token, start, end) para cada token en el texto.
 def tokenize(text: str) -> list[tuple[str, int, int]]:
     return [(m.group().lower(), m.start(), m.end()) for m in TOKEN_RE.finditer(text)]
 
 
+
+# Convertimos cualquier cadena de texto en una tupla de strings en minúsculas.
+# Por ejemplo: "Ácido Acetilsalicílico" -> ("ácido", "acetilsalicílico")
 def surface_key(text: str) -> tuple[str, ...]:
     return tuple(t for t, _, _ in tokenize(text))
 
@@ -62,6 +71,8 @@ class GazetteerNER:
     # ------------------------------------------------------------------ fit
     def fit(self, docs: list[Document]) -> "GazetteerNER":
         labels: dict[tuple[str, ...], Counter] = defaultdict(Counter)
+        # Iteramos sobre cada documento anotado y contamos el número de veces que aparece
+        # cada tupla de tokens asociada a una etiqueta. 
         for doc in docs:
             for a in doc.annotations:
                 key = surface_key(a.text)
@@ -76,6 +87,10 @@ class GazetteerNER:
             for key, _, _ in self._raw_matches(doc.text, greedy=False):
                 self.entries[key]["seen"] += 1
 
+        # Filtro de precisión: calculamos la precisión estimada e cada forma textual
+        # precisión = veces anotada/ max(veces vista, veces anotada)
+        # Conservamos las entradas que superen los umbrales de min_count y min_precision,
+        # en caso de que una palabra esté asociada a varias etiquetas, nos quedamos con la más frecuente.
         kept = {}
         for key, e in self.entries.items():
             annotated = sum(e["labels"].values())
@@ -90,6 +105,12 @@ class GazetteerNER:
 
     # -------------------------------------------------------------- predict
     def _raw_matches(self, text: str, greedy: bool = True):
+        """
+        Recorremos los tokens del texto de entrada y hacemos una búsqueda de secuencias que coincidan con
+        las claves aprendidas. 
+        Para la Búsqueda Greedy, evaluaremos subcadenas desde la longitud máxima aprendida max_len hasta 1.
+        Al encontrar la coincidencia más larga se emite yield y avanza la posición la posición saltando
+        los tokens consumidos (i += matched) para evitar solapamientos."""
         toks = tokenize(text)
         i = 0
         while i < len(toks):
@@ -103,15 +124,22 @@ class GazetteerNER:
             i += matched if (greedy and matched) else 1
 
     def predict(self, text: str) -> list[Mention]:
+        """
+        Recibimos una cadena de texto y generamos una lista de objetos Mention con las entidades detectadas.
+        """
         if not isinstance(text, str):
             raise TypeError("El texto de entrada debe ser str")
         out = []
-        for key, s, e in self._raw_matches(text):
+        for key, s, e in self._raw_matches(text): # Usamos _raw_matches para obtener los rangos de caracteres
+            # Extraemos el texto exacto del original con text[s:e], garantizando un texto de entrado que no se modifique
+            # y que los offsets coincidan
             entry = self.entries[key]
             out.append(Mention(text[s:e], entry["label"], s, e, entry["precision"]))
         return out
 
     # ------------------------------------------------------- persistencia
+    # Permitimos guardar el estado del modelo entrenado con sus reglas y parámetros en un fichero JSON con save() y
+    # reconstruimos el modelo con load() a partir de ese fichero. Esto permite reproducir resultados y compartir modelos.
     def config(self) -> dict:
         return {"name": self.name, "min_precision": self.min_precision,
                 "min_count": self.min_count, "entries": len(self.entries)}
@@ -136,5 +164,5 @@ class GazetteerNER:
         return cls.from_dict(json.loads(Path(path).read_text(encoding="utf-8")))
 
 
-def mention_dict(m: Mention) -> dict:
+def mention_dict(m: Mention) -> dict: # Función simple que convierte la instancia de Mention en un diccionarion de Python
     return asdict(m)

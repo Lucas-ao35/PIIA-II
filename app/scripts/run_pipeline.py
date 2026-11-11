@@ -23,19 +23,28 @@ from cu03.pipeline import InvalidInputError, Pipeline  # noqa: E402
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument("--text")
-    src.add_argument("--file", type=Path)
+    src.add_argument("--text")                  # Recibe directamente el texot clínico como cadena en la consola
+    src.add_argument("--file", type=Path)       # Recibe una ruta del archivo de texto .txt
     ap.add_argument("--id", default=None, help="Identificador del documento (sin datos personales)")
+                                                # Permite asignar un id manual al documento
     ap.add_argument("--model", type=Path, default=None)
+                                                # Permite cargar un modelo guardado en disco
+                                                # Si no se especifica, entrena el baseline en la partición train
     ap.add_argument("--out", type=Path, default=None)
+                                                # Permite especificar ruta para guardar la salida JSON
+                                                # Si no se especifica, se imprime en la consola
     args = ap.parse_args()
 
+    # Inicializamos el pipeline
     pipe = Pipeline.load(args.model) if args.model else Pipeline.from_corpus(("train",), find_data_dir(ROOT))
     raw = args.text if args.text is not None else args.file.read_bytes()
+    # Leemos la entrada y defininimos doc_id con argumento --id o con --file
     doc_id = args.id or (args.file.stem if args.file else None)
     try:
+        # Ejecutamso la extracción de menciones, normalización y validación estricta del JSON canónico
         out = pipe.process_json(raw, doc_id)
     except InvalidInputError as exc:
+        # Si la entrada no es válida se captura InvalidInputError y se devuelve un código de error 2
         print(exc, file=sys.stderr)
         return 2
     if args.out:

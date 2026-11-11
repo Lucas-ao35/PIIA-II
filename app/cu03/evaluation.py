@@ -26,6 +26,13 @@ LOW_SUPPORT = 30  # por debajo, la métrica de la categoría se considera inesta
 
 
 def prf(tp: int, fp: int, fn: int) -> dict:
+    """
+    Función para calcular las métricas fundamentales de clasificación binaria:
+    - Precisión (Precision): proporción de verdaderos positivos sobre el total de predicciones positivas.   
+    - Recall (Sensibilidad): proporción de verdaderos positivos sobre el total de casos positivos reales.
+    - F1 Score: media armónica de precisión y recall, proporcionando una medida balanceada de la precisión y la sensibilidad.
+    - Soporte (Support): número total de casos positivos reales.
+    """
     p = tp / (tp + fp) if tp + fp else 0.0
     r = tp / (tp + fn) if tp + fn else 0.0
     f = 2 * p * r / (p + r) if p + r else 0.0
@@ -34,7 +41,12 @@ def prf(tp: int, fp: int, fn: int) -> dict:
 
 
 def strict_ner_metrics(gold: set[tuple], pred: set[tuple]) -> dict:
-    """gold/pred: conjuntos de (doc_id, start, end, label)."""
+    """
+    Calcula las métricas del modulo NER (Named Entity Recognition) con coincidencia estricta.
+    - Métricas por etiqueta (per_label): P/R/F1 y soporte para cada etiqueta presente en los conjuntos gold y pred de forma individual.
+    - Métricas micro (micro): P/R/F1 y soporte considerando todas las etiquetas conjuntamente, proporcionando una visión global del rendimiento del modelo.
+    - F1 macro (macro_f1): promedia de forma no ponderada las métricas del F1 de cadaa etiqueta individual.
+    gold/pred: conjuntos de (doc_id, start, end, label)."""
     labels = sorted({g[3] for g in gold} | {p[3] for p in pred})
     per = {}
     for lab in labels:
@@ -47,6 +59,9 @@ def strict_ner_metrics(gold: set[tuple], pred: set[tuple]) -> dict:
 
 
 def _deps() -> dict:
+    """
+    Devuelve un diccionario con las versiones de Python y de los paquetes relevantes
+    """
     out = {"python": platform.python_version()}
     for pkg in ("jsonschema", "pandas", "streamlit"):
         try:
@@ -58,6 +73,19 @@ def _deps() -> dict:
 
 def evaluate(pipeline: Pipeline, docs: list[Document], split: str,
              train_splits: list[str]) -> dict:
+    """
+    Evaluación sobre una lista de documentos y mide 4 aspectos:
+    - Extracción NER: nativa, manteniendo las etiquetas originales de PharmaCoNER
+    - Normalización de terminología: mide el desempeño de la normalización sobre las menciones que
+    el NER extrajo correctamente y que tienen código gold. Registra el número de menciones evaluables,
+    el conteo por estados, la exactitud del Top-1 y la cobertura.
+    - normalización aislada: aplicando normalización a todas las menciones reales del gold standard e
+    ignorando el desempeño del NER. Sirve como referencia para la spec, sin el sesgo introducido de los
+    errores por la extracción previa.
+    - Validez de la salida: mide la proporción de documentos que validaDOS, también recopila los 15 FP y
+    15 FN más frecuentes en términos de texto. Registra las limitaciones conocidas del pipeline y del corpus.
+
+    """
     gold_native, pred_native = set(), set()
     gold_type, pred_type = set(), set()
     gold_codes: dict[tuple, str] = {}
@@ -169,6 +197,8 @@ def evaluate(pipeline: Pipeline, docs: list[Document], split: str,
 
 
 def to_markdown(r: dict) -> str:
+    """
+    Genera un informe en formato Markdown a partir del diccionario de resultados de la función evaluate()."""
     run = r["run"]
     lines = [
         f"# Informe de evaluación CU-03 — {run['eval_split']}",
@@ -218,6 +248,9 @@ def to_markdown(r: dict) -> str:
 
 
 def write_report(report: dict, out_dir: Path) -> tuple[Path, Path]:
+    """
+    Creamos una carpeta de salida y escribimos el informe en dos formatos: JSON y Markdown. 
+    Devuelve las rutas de ambos ficheros."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = f"eval-{report['run']['eval_split']}"

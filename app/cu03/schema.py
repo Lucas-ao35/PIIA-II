@@ -60,7 +60,7 @@ JSON_SCHEMA: dict = {
 
 _validator = Draft202012Validator(JSON_SCHEMA)
 
-
+# ----------------------------------------------------------------- funciones de validación
 class SchemaValidationError(ValueError):
     """La salida no cumple el contrato JSON canónico."""
 
@@ -70,36 +70,47 @@ class SchemaValidationError(ValueError):
 
 
 def schema_errors(doc: dict) -> list[str]:
+    # Validación declarativa de JSON Schema mediante _validator.iter_errors(doc)
+    # Devuelve una lista con la ruta en formato JSON Pointer y el mensaje de error.
     return [f"{'/'.join(map(str, e.absolute_path)) or '<root>'}: {e.message}"
             for e in sorted(_validator.iter_errors(doc), key=lambda e: list(e.absolute_path))]
 
 
 def semantic_errors(doc: dict) -> list[str]:
     errors: list[str] = []
+    # Validación semántica
+    # Comprueba las regals dinámicas de integridad refrencia y de negocio de un esquema estático
     text = doc.get("source_text", "")
     prev = None
     for i, ent in enumerate(doc.get("entities", [])):
         s, e = ent.get("start"), ent.get("end")
+        # Verificamos rango de offsets válido
         if not (isinstance(s, int) and isinstance(e, int) and 0 <= s < e <= len(text)):
             errors.append(f"entities/{i}: intervalo inválido [{s}, {e})")
             continue
+        # Revisamos que le fragmento recortado sea igual al campo text de su entidad
         if text[s:e] != ent.get("text"):
             errors.append(f"entities/{i}: source_text[{s}:{e}] != text")
+        # Verificamos que las entidades estén ordenadas por inicio y, en caso de empate, por longitud decreciente
         key = (s, -(e - s))
         if prev is not None and key < prev:
             errors.append(f"entities/{i}: entidades fuera de orden")
         prev = key
         coding, status = ent.get("coding") or {}, ent.get("normalization_status")
         filled = [coding.get(k) is not None for k in ("system", "code", "display")]
+        # Si el estado es matched, los tres campos de coding deben estar presentes
         if status == "matched" and not all(filled):
             errors.append(f"entities/{i}: 'matched' exige system, code y display")
+        # Si el estado es not_found o ambiguous, los tres campos de coding deben ser null
         if status in ("not_found", "ambiguous") and any(filled):
             errors.append(f"entities/{i}: '{status}' exige coding a null")
     return errors
 
 
 def validate_document(doc: dict) -> None:
+    # Validación completa de un documento clínico estructurado
     errors = schema_errors(doc)
+    # Si no hay errores de esquema, comprobamos las reglas semánticas
     if not errors:
         errors = semantic_errors(doc)
     if errors:
@@ -107,6 +118,7 @@ def validate_document(doc: dict) -> None:
 
 
 def is_valid(doc: dict) -> bool:
+    # Función de utilidad que devuelve True si el documento es válido, False en caso contrario
     try:
         validate_document(doc)
         return True
@@ -115,5 +127,6 @@ def is_valid(doc: dict) -> bool:
 
 
 def write_schema(path: Path) -> None:
+    # Exporta la definición de JSON_SCHEMA a un fichero legible .json en disco
     Path(path).write_text(json.dumps(JSON_SCHEMA, indent=2, ensure_ascii=False) + "\n",
                           encoding="utf-8")

@@ -44,7 +44,11 @@ LABEL_TO_TYPE: dict[str, str | None] = {
 NULL_CODES = {"", "<null>", "null", "NONE"}
 REPAIR_WINDOW = 10
 
-
+"""
+Representación de una entidad clínica individual (fárma o proteína) ,
+con identificador (id), etiqueta original (label), posiciones de 
+inicio/fin (start, end), fragmento del texto (text) y código SNOMED CT (code).
+"""
 @dataclass(frozen=True)
 class Annotation:
     id: str
@@ -54,11 +58,13 @@ class Annotation:
     text: str
     code: str | None = None
 
-
+"""Almacenamiento del documento completo con su identificador, partición (split),
+texto completo, lista de anotaciones y registros auxiliares de repaired para corregidos
+y dropped para descartados."""
 @dataclass
 class Document:
     id: str
-    split: str
+    split: str # Partición del corpus (train/dev/test)
     text: str
     annotations: list[Annotation] = field(default_factory=list)
     repaired: list[str] = field(default_factory=list)
@@ -66,11 +72,20 @@ class Document:
 
 
 def _read(path: Path) -> str:
+    """
+    Lee un fichero de texto con codificación UTF-8 y sin normalizar saltos de línea.
+    """
     with open(path, encoding="utf-8-sig", newline="") as fh:
+        # newline="" evita que Python normalice los saltos de línea, lo cual es importante para mantener los offsets correctos
         return fh.read()
 
 
 def _repair_offsets(text: str, mention: str, start: int, end: int) -> tuple[int, int] | None:
+    """
+    Maneja la inconsistencia de la posición [start:end] indicando en la anotación que no coincide con la subcadena
+    esperada en text
+    """
+    # lo y hi son los límites de la ventana de búsqueda alrededor de la posición original
     lo = max(0, start - REPAIR_WINDOW)
     hi = min(len(text), end + REPAIR_WINDOW)
     best = None
@@ -79,6 +94,8 @@ def _repair_offsets(text: str, mention: str, start: int, end: int) -> tuple[int,
         if best is None or abs(idx - start) < abs(best - start):
             best = idx
         idx = text.find(mention, idx + 1, hi)
+    # Si se encuentra una ocurrencia más cercana, devuelve los nuevos offsets
+    # de lo contrario, devuelve None
     return (best, best + len(mention)) if best is not None else None
 
 
@@ -89,15 +106,19 @@ def parse_brat(ann_path: Path, txt_path: Path, split: str = "unknown") -> Docume
     doc = Document(id=txt_path.stem, split=split, text=text)
 
     notes: dict[str, str] = {}
+    # Recorremos el archivo buscando línes que comiencen con '#', contendrán terminología
+    # o códigos médicos asignados en las menciones T
     for line in lines:
         if line.startswith("#"):
             parts = line.split("\t")
             if len(parts) >= 3 and len(parts[1].split()) == 2:
                 notes[parts[1].split()[1]] = parts[2].strip()
 
+    # Filtramos las líneas que comienzan con T (entidades BRAT)
     for line in lines:
         if not line.startswith("T"):
             continue
+        # Cada línea de anotación tiene el formato: TID \t LABEL START END \t MENTION
         parts = line.split("\t")
         if len(parts) < 3:
             continue
@@ -105,7 +126,10 @@ def parse_brat(ann_path: Path, txt_path: Path, split: str = "unknown") -> Docume
         if ";" in meta:  # entidades discontinuas: no existen en PharmaCoNER 1.1
             doc.dropped.append(f"{tid}: discontinua")
             continue
+        # Extraemos la etiqueta y los offsets de la anotación
         label, start, end = meta.split()[0], int(meta.split()[1]), int(meta.split()[-1])
+        # Verificamos si los offsets coinciden con el texto, en caso contrario, intentamos
+        # corregir los límites con la función _repair_offsets. Si no se logra reparar, se descarta la anotación
         if text[start:end] != mention:
             fixed = _repair_offsets(text, mention, start, end)
             if fixed is None:
@@ -117,6 +141,7 @@ def parse_brat(ann_path: Path, txt_path: Path, split: str = "unknown") -> Docume
         code = None if code is None or code in NULL_CODES else code
         doc.annotations.append(Annotation(tid, label, start, end, mention, code))
 
+    # Ordenamos las anotaciones por posición de inicio y longitud (de mayor a menor) para facilitar la visualización y el procesamiento posterior
     doc.annotations.sort(key=lambda a: (a.start, -(a.end - a.start)))
     if doc.repaired or doc.dropped:
         log.warning("%s: %d offsets reparados, %d anotaciones descartadas",
@@ -140,6 +165,10 @@ def find_data_dir(project_root: Path | None = None) -> Path:
 
 
 def load_split(split: str, data_dir: Path | None = None) -> list[Document]:
+    """
+    Carga todos los documentos de una partición del corpus (train/dev/test) y devuelve una lista de `Document`.
+    """
+    # Validamos que la partición solicitada sea conocida
     if split not in SPLITS:
         raise ValueError(f"Partición desconocida: {split!r}. Válidas: {sorted(SPLITS)}")
     base = (data_dir or find_data_dir()) / SPLITS[split]
@@ -147,10 +176,15 @@ def load_split(split: str, data_dir: Path | None = None) -> list[Document]:
         raise FileNotFoundError(
             f"No existe {base}. Descarga el corpus con: python scripts/download_datasets.py"
         )
+    # Buscamos todos los archivos .ann en la carpeta de la partición y parseamos cada par .ann/.txt
     return [parse_brat(ann, ann.with_suffix(".txt"), split) for ann in sorted(base.glob("*.ann"))]
 
 
 def load_splits(splits, data_dir: Path | None = None) -> list[Document]:
+    """
+    Función de conveniencia para cargar una lista de particiones [train/dev/test] y 
+    todos los documentos en una sola lista.
+    """
     docs: list[Document] = []
     for s in splits:
         docs.extend(load_split(s, data_dir))
