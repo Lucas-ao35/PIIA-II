@@ -22,7 +22,7 @@ from cu03.pipeline import Pipeline
 # Configuración inicial de Streamlit
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="CU-03 | Visualizador Clínico",
+    page_title="CU-03 | Sistema de extracción clínica",
     page_icon="🩺",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -89,6 +89,26 @@ st.markdown(
         font-size: 0.75rem;
         font-weight: 600;
         letter-spacing: 0.03em;
+    }
+    .feature-panel {
+        background: rgba(148, 163, 184, 0.06);
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+    }
+    .tag-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.42rem;
+        margin-top: 0.8rem;
+    }
+    .section-card {
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.02);
+        padding: 0.75rem 0.9rem;
     }
     </style>
     """,
@@ -184,6 +204,61 @@ def doc_metrics(gold: list, pred: list) -> dict:
             "fp_set": p - g, "fn_set": g - p}
 
 
+def summarize_case(entities: list[dict]) -> dict:
+    """Genera un resumen ejecutvo del caso para la UI del visor clínico."""
+    labels = Counter()
+    matched = 0
+    ambiguous = 0
+    missing = 0
+    terms = []
+
+    for ent in entities:
+        label = ent.get("label")
+        if label:
+            labels[label] += 1
+        status = ent.get("norm_status") or ent.get("normalization_status")
+        if status == "matched":
+            matched += 1
+        elif status == "ambiguous":
+            ambiguous += 1
+        elif status in {"not_found", None}:
+            missing += 1
+        text = ent.get("text")
+        if text:
+            terms.append(text)
+
+    top_terms = [term for term, _ in Counter(t.lower() for t in terms).most_common(5)]
+    if labels:
+        dominant_label, dominant_count = labels.most_common(1)[0]
+        headline = (
+            f"Este caso destaca por {dominant_count} menciones de {dominant_label.lower()} "
+            f"y un total de {len(entities)} entidades detectadas."
+        )
+    else:
+        headline = "Este caso no ofrece menciones relevantes para el conjunto actual de filtros."
+
+    return {
+        "headline": headline,
+        "labels": labels,
+        "matched": matched,
+        "ambiguous": ambiguous,
+        "missing": missing,
+        "top_terms": top_terms,
+    }
+
+
+def render_term_chips(terms: list[str], color: str = "#6366f1") -> str:
+    """Devuelve una nube de tags HTML para mostrar términos destacados del caso."""
+    if not terms:
+        return ""
+    chips = "".join(
+        f"<span class='badge-pill' style='background: {color}; color: white; margin: 0.1rem; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);'>"
+        f"{html.escape(term)}</span>"
+        for term in terms
+    )
+    return f"<div class='tag-cloud'>{chips}</div>"
+
+
 def render_highlighted_text(raw_text: str, entities: list, active_labels: set) -> str:
     """Inserta marcas HTML para resaltar menciones según los offsets y categorías activas."""
     filtered_entities = [e for e in entities if e["label"] in active_labels]
@@ -245,16 +320,16 @@ pipe = get_pipeline(DATA_DIR)
 # Barra Lateral (Sidebar)
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.title("🩺 CU-03 PLN Clínico")
-    st.caption("Extracción de información y normalización a SNOMED CT")
+    st.title("CU-03 | PLN clínico")
+    st.caption("Extracción de entidades y normalización a SNOMED CT")
     st.markdown("---")
 
     # Filtro por Split
     split_options = ["Todos", "train", "dev", "test"]
-    selected_split = st.selectbox("📂 Partición oficial", split_options, index=2)  # 'dev' por defecto
+    selected_split = st.selectbox("Partición oficial", split_options, index=2)  # 'dev' por defecto
 
     # Filtro de texto / búsqueda
-    search_query = st.text_input("🔍 Buscar término o ID", value="")
+    search_query = st.text_input("Buscar término o ID", value="")
 
     # Filtrar lista de documentos
     filtered_docs = docs
@@ -269,10 +344,10 @@ with st.sidebar:
     # Botones de acceso rápido
     col_q1, col_q2 = st.columns(2)
     with col_q1:
-        if st.button("⭐ Caso 0013-1", width="stretch"):
+        if st.button("Caso base", width="stretch"):
             st.session_state["target_doc_id"] = "S0004-06142006000700013-1"
     with col_q2:
-        if st.button("🎲 Aleatorio", width="stretch"):
+        if st.button("Aleatorio", width="stretch"):
             st.session_state["target_doc_id"] = random.choice(filtered_docs or docs)["id"]
 
     # Selector de documento
@@ -281,7 +356,7 @@ with st.sidebar:
     default_idx = doc_ids.index(default_id) if default_id in doc_ids else 0
 
     selected_doc_id = st.selectbox(
-        "📄 Seleccionar caso clínico",
+        "Seleccionar caso clínico",
         doc_ids,
         index=default_idx if doc_ids else 0,
     )
@@ -289,13 +364,13 @@ with st.sidebar:
 
     st.markdown("---")
     source = st.radio(
-        "🧠 Anotaciones mostradas",
+        "Anotaciones mostradas",
         ["Gold (corpus)", "Predicción del pipeline"],
         help="La predicción usa el baseline entrenado solo con la partición train.",
     )
 
     st.markdown("---")
-    st.markdown("##### 🏷️ Categorías a resaltar")
+    st.markdown("##### Categorías a resaltar")
     highlight_normalizables = st.checkbox("Fármacos (NORMALIZABLES)", value=True)
     highlight_proteinas = st.checkbox("Proteínas y Genes (PROTEINAS)", value=True)
     highlight_unclear = st.checkbox("Dudosos (UNCLEAR)", value=True)
@@ -325,10 +400,10 @@ shown_entities = pred_entities if source.startswith("Predicción") else gold_ent
 # Pestañas Principales (Tabs)
 # -----------------------------------------------------------------------------
 tab_viewer, tab_live, tab_analytics, tab_about = st.tabs([
-    "📖 Visor de Casos Clínicos",
-    "🧪 Pipeline en vivo",
-    "📊 Estadísticas del Corpus",
-    "ℹ️ Arquitectura & Caso de Uso",
+    "Visor de casos",
+    "Pipeline en vivo",
+    "Estadísticas",
+    "Arquitectura y caso de uso",
 ])
 
 
@@ -346,6 +421,22 @@ with tab_viewer:
         st.metric("Menciones", len(shown_entities))
     with c4:
         st.metric("Longitud", f"{current_doc['char_length']} car.")
+
+    summary = summarize_case(shown_entities)
+    st.markdown(
+        f"""
+        <div class='feature-panel'>
+            <strong>Resumen ejecutivo:</strong> {html.escape(summary['headline'])}
+            <div class='tag-cloud'>
+                <span class='badge-pill' style='background: rgba(16,185,129,0.18); color: #10b981;'>Matched: {summary['matched']}</span>
+                <span class='badge-pill' style='background: rgba(168,85,247,0.18); color: #a855f7;'>Ambiguos: {summary['ambiguous']}</span>
+                <span class='badge-pill' style='background: rgba(245,158,11,0.18); color: #f59e0b;'>Sin código: {summary['missing']}</span>
+            </div>
+            {render_term_chips(summary['top_terms'])}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     # Leyenda visual
     st.markdown(
@@ -376,11 +467,20 @@ with tab_viewer:
                 st.write("**Falsos positivos:** " + (", ".join(f"`{txt[s:e]}` ({l})" for s, e, l in sorted(dm["fp_set"])) or "—"))
                 st.write("**Falsos negativos:** " + (", ".join(f"`{txt[s:e]}` ({l})" for s, e, l in sorted(dm["fn_set"])) or "—"))
 
+    if shown_entities:
+        label_summary = Counter(e.get("label") for e in shown_entities if e.get("label"))
+        if label_summary:
+            st.markdown("##### 🧭 Distribución por tipo de entidad")
+            col_labels = st.columns(min(len(label_summary), 4))
+            for idx, (label, count) in enumerate(label_summary.most_common(min(len(label_summary), 4))):
+                with col_labels[idx]:
+                    st.metric(label, count)
+
     # Contenedor a dos columnas: Texto vs Menciones
     col_text, col_info = st.columns([3, 2])
 
     with col_text:
-        st.markdown("##### 📄 Texto Clínico Anotado")
+        st.markdown("##### Texto clínico anotado")
         highlighted_html = render_highlighted_text(
             current_doc["raw_text"],
             shown_entities,
@@ -389,7 +489,7 @@ with tab_viewer:
         st.markdown(highlighted_html, unsafe_allow_html=True)
 
     with col_info:
-        st.markdown("##### 📋 Menciones Extraídas & Normalización")
+        st.markdown("##### Menciones extraídas y normalización")
         if shown_entities:
             # Tabla de entidades
             df_entities = pd.DataFrame([
@@ -406,7 +506,7 @@ with tab_viewer:
 
             # Inspector interactivo de mención seleccionada
             st.markdown("---")
-            st.markdown("##### 🔎 Inspector de Entidad")
+            st.markdown("##### Inspector de entidad")
             entity_names = [f"#{i+1}: {e['text']} ({e['label']})" for i, e in enumerate(shown_entities)]
             selected_ent_idx = st.selectbox(
                 "Seleccionar entidad para inspeccionar:",
@@ -450,7 +550,7 @@ with tab_viewer:
 # TAB 2: PIPELINE EN VIVO
 # -----------------------------------------------------------------------------
 with tab_live:
-    st.subheader("🧪 Procesar un texto clínico")
+    st.subheader("Procesar un texto clínico")
     st.caption("Usa solo textos sintéticos o de corpus públicos: nunca datos reales de pacientes.")
     sample = ("Mujer de 63 años en tratamiento con omeprazol y enoxaparina. Se añadió ácido "
               "acetilsalicílico y se suspendió la heparina. PSA dentro de la normalidad.")
@@ -465,6 +565,9 @@ with tab_live:
         c2.metric("matched", counts.get("matched", 0))
         c3.metric("ambiguous", counts.get("ambiguous", 0))
         c4.metric("not_found", counts.get("not_found", 0))
+        if ents:
+            top_texts = render_term_chips([e["text"] for e in ents[:6]], color="#10b981")
+            st.markdown(f"**Términos detectados:** {top_texts}", unsafe_allow_html=True)
         live_json = json.dumps(doc_json, indent=2, ensure_ascii=False)
         st.code(live_json, language="json")
         st.download_button("💾 Descargar JSON", live_json, "texto-libre_cu03.json", "application/json")
@@ -474,7 +577,7 @@ with tab_live:
 # TAB 3: ANALYTICS & ESTADÍSTICAS DEL CORPUS
 # -----------------------------------------------------------------------------
 with tab_analytics:
-    st.subheader("📊 Métricas Globales del Corpus PharmaCoNER")
+    st.subheader("Métricas globales del corpus PharmaCoNER")
     
     total_entities = sum(stats["by_label"].values())
     m1, m2, m3, m4 = st.columns(4)
@@ -495,7 +598,7 @@ with tab_analytics:
     col_chart1, col_chart2 = st.columns(2)
 
     with col_chart1:
-        st.markdown("##### 🏷️ Distribución de Menciones por Categoría")
+        st.markdown("##### Distribución de menciones por categoría")
         df_cat = pd.DataFrame([
             {"Categoría": cat, "Menciones": count, "Porcentaje": round((count / total_entities) * 100, 1)}
             for cat, count in stats["by_label"].items()
@@ -515,7 +618,7 @@ with tab_analytics:
         st.altair_chart(chart_cat, width="stretch")
 
     with col_chart2:
-        st.markdown("##### 📂 Casos por Partición Oficial")
+        st.markdown("##### Casos por partición oficial")
         df_splits = pd.DataFrame([
             {"Partición": sp.upper(), "Documentos": count}
             for sp, count in stats["by_split"].items()
@@ -536,7 +639,7 @@ with tab_analytics:
     col_terms, col_codes = st.columns(2)
 
     with col_terms:
-        st.markdown("##### 💊 Top Fármacos Más Frecuentes (NORMALIZABLES)")
+        st.markdown("##### Top fármacos más frecuentes (NORMALIZABLES)")
         top_norm_terms = stats["terms_by_label"]["NORMALIZABLES"].most_common(12)
         df_top_terms = pd.DataFrame(top_norm_terms, columns=["Fármaco / Sustancia", "Frecuencia"])
         chart_terms = (
@@ -552,7 +655,7 @@ with tab_analytics:
         st.altair_chart(chart_terms, width="stretch")
 
     with col_codes:
-        st.markdown("##### 🌐 Top Códigos SNOMED CT Más Asignados")
+        st.markdown("##### Top códigos SNOMED CT asignados")
         top_codes_data = []
         for code, count in stats["code_counter"].most_common(12):
             rep_term = stats["code_to_names"][code].most_common(1)[0][0] if stats["code_to_names"][code] else "—"

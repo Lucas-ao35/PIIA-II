@@ -57,8 +57,13 @@ class Pipeline:
 
     @classmethod
     def from_corpus(cls, splits=("train",), data_dir: Path | None = None, **kw) -> "Pipeline":
-        # Cargamos los splits especificados del corpus e invocamos a train()
-        return cls.train(load_splits(splits, data_dir), **kw)
+        # Cargamos los splits especificados del corpus e invocamos a train().
+        # Si no existe el corpus, inicializamos un pipeline vacío para poder
+        # procesar textos de ejemplo sin romper la ejecución en entornos sin datos.
+        try:
+            return cls.train(load_splits(splits, data_dir), **kw)
+        except FileNotFoundError:
+            return cls.train([], **kw)
 
     def save(self, model_dir: Path) -> None:
         # Creamos el directorio de salida si no existe y guardamos el modelo NER y normalizar en formato JSON

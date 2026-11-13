@@ -66,3 +66,16 @@ solo cubre formas vistas.
   frecuente en el corpus, no la descripción oficial de SNOMED CT.
 - **Defecto del gold**: `S0211-69952015000200015-1` (train) tiene 5 offsets desplazados; el cargador los
   repara y lo registra.
+
+## Ejecutar el proyecto con uv
+
+La forma recomendada de usar el proyecto es a través de `uv`, que asegura un entorno reproducible y consistente con la configuración del repositorio.
+
+```bash
+cd app
+uv sync --group dev
+uv run python -m pytest -q
+uv run streamlit run app.py
+```
+
+Esto evita errores por dependencias no instaladas y mantiene el proyecto alineado con la versión declarada en `pyproject.toml`.

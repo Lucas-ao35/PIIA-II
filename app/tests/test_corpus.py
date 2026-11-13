@@ -1,4 +1,5 @@
 from cu03.corpus import LABEL_TO_TYPE, parse_brat
+from cu03.pipeline import Pipeline
 from cu03.schema import ENTITY_TYPES
 
 
@@ -41,3 +42,10 @@ def test_no_normaliza_saltos_de_linea(tmp_path):
 
 def test_mapeo_de_etiquetas_documentado():
     assert {t for t in LABEL_TO_TYPE.values() if t} <= set(ENTITY_TYPES)
+
+
+def test_pipeline_fallback_sin_corpus(tmp_path):
+    pipe = Pipeline.from_corpus(("train",), tmp_path / "missing")
+    doc = pipe.process("Se pautó enoxaparina y omeprazol.")
+    assert doc["source_text"] == "Se pautó enoxaparina y omeprazol."
+    assert isinstance(doc["entities"], list)

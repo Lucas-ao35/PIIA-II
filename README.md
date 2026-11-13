@@ -1,21 +1,28 @@
 # CU-03 — Extracción y estructuración de información clínica en español mediante PLN
 
-## ¿Qué es el proyecto?
+## ¿Qué es este proyecto?
 
-En este proyecto se propone definir un prototipo de Procesamiento del Lenguaje Natural (PLN) que lea textos clínicos en español, principalmente casos publicados y ejemplos sintéticos, y los transforme en datos estructurados. El flujo previsto extraerá menciones clínicas (enfermedades, síntomas, fármacos, procedimientos, ...), intentará normalizarlas con terminologías de referencia cuando haya correspondencia justificable y generará JSON; contempla además una representación inicial en recursos HL7 FHIR. En esta entrega se especifican esas funcionalidades, pero todavía no se implementan.
+Este repositorio desarrolla un prototipo de procesamiento del lenguaje natural para textos clínicos en español. La idea principal es transformar un texto clínico libre en datos estructurados, evaluables y reutilizables en distintos flujos de análisis.
 
-La arquitectura que soporta estas funcionalidades está documentada en `ARCHITECTURE.md`, y las decisiones de implementación tomadas por el equipo, en la carpeta `decisions/`.
+El proyecto aborda tres piezas clave del caso de uso:
 
-El caso de uso responde a que una parte importante de la información clínica se expresa en texto libre, lo que dificulta su consulta, análisis y explotación estadística. El proyecto busca facilitar el análisis posterior, la investigación biomédica y la interoperabilidad con sistemas de información sanitaria, no sustituir el criterio de profesionales sanitarios.
+1. detectar entidades clínicas relevantes en texto libre,
+2. normalizarlas a terminologías de referencia cuando existe una correspondencia defendible,
+3. generar una salida estructurada en JSON y una representación inicial compatible con HL7 FHIR.
 
+La solución se diseña como un pipeline modular con etapas claramente diferenciadas: ingest del corpus, extracción, normalización, validación JSON, evaluación y visualización.
 
-##  Motivación y objetivos
+La arquitectura general se describe en [ARCHITECTURE.md](ARCHITECTURE.md), y las decisiones de implementación se documentan en [decisions](decisions/). La parte funcional del proyecto está implementada dentro de [app](app/), con una guía operativa específica en [app/README.md](app/README.md).
+
+---
+
+## Motivación y objetivos
 
 Como equipo, este caso nos ha llamado la atención por conectar con la inteligencia artificial y el PLN con una necesidad real concreta del ámbito sanitario. Responde al problema de que parte de la información clínica está en texto libre y resulta difícil de consultar y reutilizar. Este proyecto permite estudiar, de forma reproducible, las etapas necesarias para pasar de una frase clínica a un registro que pueda ser procesado por una base de datos.
 
 En la primera reunión se nos recomendó comenzar por el tratamiento de fármacos, mas el equipo prevé una posible ampliación posterior del reconocimiento a enfermedades, síntomas/signos y procedimientos. El SERGAS aborda una necesidad relacionada mediante IANUS, que organiza la información por problemas de salud. Además, los corpus clínicos en español publicados para investigación permiten definir una evaluación sin usar historias clínicas reales.
 
-El objetivo del proyecto es especificar, y en fases posteriores construir, un pipeline que:
+El objetivo del proyecto es especificar y evidenciar, con una implementación funcional mínima viable, un pipeline que:
 
 1. Reciba textos clínicos en español.
 2. Detecte y clasifique entidades clínicas previstas.
@@ -35,7 +42,7 @@ El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparac
 
 ## Alcance
 
-### Definido en el proyecto
+### Incluido en el proyecto
 
 - Procesamiento de textos clínicos en español procedentes de corpus públicos permitidos.
 - Inicio de la extracción con fármacos mediante el corpus PharmaCoNER; ampliación prevista a enfermedades, síntomas/signos y procedimientos con DisTEMIST, SympTEMIST y MedProcNER, si sus datos son compatibles.
@@ -91,7 +98,7 @@ La mención de una fuente no implica que todas sus anotaciones sean compatibles 
 | Integrante | Rol principal | Correo |
 |---|---|---|
 | Lucas Amado Oseira | Gestor del proyecto y científico de datos | lucas.amado@rai.usc.es |
-| María Lestón Geada | Científica de datos| maria.leston0@rai.usc.es |
+| María Lestón Geada | Científica de datos | maria.leston0@rai.usc.es |
 | Mariña Vilar Estévez | Portavoz e ingeniera de datos | marina.vilar.estevez@rai.usc.es |
 | Mateo Fraguas Abal | Ingeniero de datos | mateo.fraguas@rai.usc.es |
 
@@ -110,41 +117,75 @@ La mención de una fuente no implica que todas sus anotaciones sean compatibles 
 ## Estructura del repositorio
 
 ```text
-entregas/
-└── cu-03-extraccion-clinica/
-    ├── README.md               ← este documento
-    ├── ARCHITECTURE.md         ← arquitectura de la solución
-    ├── specs/                  ← especificaciones funcionales
-    │   ├── evaluacion-resultados.md
-    │   ├── extraccion-entidades.md
-    │   ├── generacion-fhir.md
-    │   ├── generacion-json.md
-    │   └── normalizacion-clinica.md
-    └── decisions/              ← decisiones de implementación (ADRs)
-        ├── corpus-pharmaconer-brat.md
-        ├── pipeline-json-canonico.md
-        ├── visualizador-streamlit.md
-        └── normalizacion-conservadora.md
+PIIA-II/
+├── README.md                     # documentación general del proyecto
+├── ARCHITECTURE.md               # arquitectura y flujo del sistema
+├── decisions/                    # ADRs con decisiones de implementación
+├── specs/                        # especificaciones funcionales
+├── app/                          # implementación del pipeline
+│   ├── README.md                 # guía de uso y puesta en marcha
+│   ├── app.py                    # visualizador Streamlit
+│   ├── cu03/                     # módulo principal del pipeline
+│   ├── scripts/                  # ejecutables del proyecto
+│   ├── tests/                    # pruebas funcionales
+│   └── schemas/                  # JSON Schema
+├── entregas/                     # copia de entrega formal
+└── ...
 ```
 
-- `README.md`: visión general, motivación, alcance, datos candidatos, equipo y organización del proyecto.
-- `ARCHITECTURE.md`: arquitectura de la solución — componentes del pipeline, flujo end-to-end y estado de implementación.
-- `specs/evaluacion-resultados.md`: protocolo y métricas para comprobar la calidad del prototipo.
-- `specs/extraccion-entidades.md`: comportamiento esperado al detectar y clasificar menciones clínicas.
-- `specs/generacion-fhir.md`: conversión del subconjunto acordado de datos a recursos FHIR y validación.
-- `specs/generacion-json.md`: contrato de salida JSON, validación y gestión de errores.
-- `specs/normalizacion-clinica.md`: reglas para proponer códigos estándar y gestionar casos ambiguos o sin correspondencia.
+Documentación principal:
 
-### Decisiones de implementación (ADRs)
+- [README.md](README.md): visión general del caso de uso, motivación, alcance y estructura del repositorio.
+- [ARCHITECTURE.md](ARCHITECTURE.md): componentes del sistema, flujo de datos y diseño global.
+- [decisions](decisions/): decisiones de implementación con contexto, alternativas y consecuencias.
+- [specs](specs/): requisitos funcionales de extracción, normalización, JSON y evaluación.
+- [app/README.md](app/README.md): guía operativa del sistema y ejecución con uv.
 
-- `decisions/corpus-pharmaconer-brat.md`: PharmaCoNER 1.1 en formato BRAT como corpus inicial, con los fármacos como camino crítico.
-- `decisions/pipeline-json-canonico.md`: pipeline por etapas desacopladas con el JSON canónico versionado como contrato entre componentes.
-- `decisions/visualizador-streamlit.md`: Streamlit como capa de exploración visual del corpus y de los resultados.
-- `decisions/normalizacion-conservadora.md`: política de normalización conservadora con estados explícitos (`matched`, `not_found`, `ambiguous`).
+---
 
+## Coherencia entre la especificación y la implementación
 
+La documentación técnica del proyecto está alineada con el código real y con la estructura del repositorio:
 
-## Seguridad y limitaciones
+- [specs/extraccion-entidades.md](specs/extraccion-entidades.md) → [app/cu03/ner.py](app/cu03/ner.py)
+  - la extracción se implementa como NER basado en diccionario y reglas, con validación de offsets y tipos.
+- [specs/normalizacion-clinica.md](specs/normalizacion-clinica.md) → [app/cu03/normalization.py](app/cu03/normalization.py)
+  - la normalización conserva estados explícitos y evita asignar código cuando la correspondencia no es inequívoca.
+- [specs/generacion-json.md](specs/generacion-json.md) → [app/cu03/schema.py](app/cu03/schema.py) y [app/cu03/pipeline.py](app/cu03/pipeline.py)
+  - el JSON canónico es el contrato de salida y se valida estrictamente antes de aceptar la salida del pipeline.
+- [specs/evaluacion-resultados.md](specs/evaluacion-resultados.md) → [app/cu03/evaluation.py](app/cu03/evaluation.py) y [app/scripts/evaluate.py](app/scripts/evaluate.py)
+  - la evaluación computa métricas de extracción, normalización y validez de salida.
+- [specs/generacion-fhir.md](specs/generacion-fhir.md) → pendiente como ampliación
+  - la conversión a FHIR queda documentada como etapa posterior al camino crítico, sin inventar datos no representables.
+
+La coherencia general del repositorio es buena: la arquitectura, las ADRs, las specs y el código funcional se apoyan entre sí y no contradicen el caso de uso del proyecto.
+
+---
+
+## Estado actual del proyecto
+
+El proyecto ya cuenta con una implementación funcional del pipeline en la carpeta [app](app/): carga de corpus, extracción de entidades, normalización conservadora, validación JSON, evaluación y ejecución local.
+
+La construcción del sistema sigue la lógica de trabajo propuesta en la arquitectura: la lógica está dividida por etapas y cada módulo tiene una responsabilidad clara.
+
+El entorno de ejecución se recomienda con `uv`, de acuerdo con la configuración del proyecto.
+
+---
+
+## Criterios de éxito
+
+Se considera que el proyecto avanza correctamente cuando:
+
+- acepta textos clínicos en español,
+- detecta entidades relevantes,
+- normaliza conceptos de forma defendible,
+- genera un JSON validable,
+- evalúa sus resultados con métricas reproducibles,
+- mantiene la documentación alineada con el código real.
+
+---
+
+## Seguridad, ética y limitaciones
 
 - La primera versión trabajará únicamente con corpus públicos autorizados y/o textos sintéticos, sin datos identificables de pacientes, por lo que no habrá un riesgo real de fuga de datos.
 

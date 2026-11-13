@@ -107,6 +107,23 @@ flowchart LR
 - **Recibe**: la salida del cargador BRAT y, a medida que se implementen, los resultados de NER y normalización.
 - **Produce**: interfaz web local, no forma parte del camino de procesamiento, solo de la exploración y demostración.
 
+## Mapeo a módulos de código real
+
+La arquitectura descrita en este documento corresponde a la implementación actual del proyecto dentro de la carpeta `app/`.
+
+| Bloque arquitectónico | Módulo real | Responsable | Observación |
+|---|---|---|---|
+| Ingesta y carga del corpus | `app/cu03/corpus.py` | carga BRAT + preparación de documentos | devuelve documentos con texto, etiquetas y offsets |
+| NER / extracción | `app/cu03/ner.py` | detección de entidades y puntuación | extrae menciones con tipo y confianza |
+| Normalización terminológica | `app/cu03/normalization.py` | asignación de códigos a entidades | mantiene estados `matched`, `not_found`, `ambiguous` |
+| JSON canónico | `app/cu03/schema.py` + `app/cu03/pipeline.py` | validación y construcción del documento final | documento con `schema_version`, `source_text` y `entities` |
+| Evaluación | `app/cu03/evaluation.py` | métricas de extracción y normalización | compara predicciones con gold |
+| Orquestación del pipeline | `app/cu03/pipeline.py` | encadena extracción → normalización → JSON | punto central de procesamiento |
+| Ejecución de scripts | `app/scripts/run_pipeline.py`, `app/scripts/evaluate.py` | entradas CLI y flujo reproducible | útiles para uso del proyecto y automatización |
+| Visualización | `app/app.py` | exploración del corpus y del pipeline | no forma parte del flujo crítico de procesamiento |
+
+La relación entre los bloques de arquitectura y el código real es, por tanto, directa: el diagrama no es un esquema abstracto, sino una vista de la estructura operativa del repositorio actual.
+
 ## Flujo end-to-end
 
 1. **Ingesta**: el cargador lee los archivos BRAT de PharmaCoNER (o un texto sintético de prueba) y produce el documento con texto y, si existe, anotación gold.
@@ -120,14 +137,16 @@ En todo momento el visualizador Streamlit permite inspeccionar cualquier documen
 
 ## Estado de implementación
 
-| Componente | Estado |
-|---|---|
-| Cargador BRAT + visualizador Streamlit | Implementado y operativo |
-| Extracción (NER) | Especificado, enfoque técnico pendiente de ADR |
-| Normalización | Especificado, camino crítico prioritario |
-| Generador JSON canónico | Especificado (contrato ya definido en `specs/generacion-json.md`) |
-| Conversor FHIR | Especificado, ampliación tras el camino crítico |
-| Evaluación | Especificado, se ejecutará sobre las particiones oficiales |
+| Componente | Estado | Evidencia de implementación |
+|---|---|---|
+| Cargador BRAT + visualizador Streamlit | Implementado y operativo | `app/cu03/corpus.py`, `app/app.py` |
+| Extracción (NER) | Implementada con enfoque basado en diccionario / reglas | `app/cu03/ner.py` |
+| Normalización | Implementada y prioritaria en el camino crítico | `app/cu03/normalization.py` |
+| Generador JSON canónico | Implementado y validado | `app/cu03/schema.py`, `app/cu03/pipeline.py` |
+| Conversor FHIR | Especificado como ampliación | `specs/generacion-fhir.md` |
+| Evaluación | Implementada con métricas reproducibles | `app/cu03/evaluation.py`, `app/scripts/evaluate.py` |
+
+La arquitectura refleja, por tanto, el estado real del proyecto: algunos bloques están implementados de forma funcional, mientras que otros siguen siendo ampliaciones o especificaciones que se ejecutarán después del camino crítico.
 
 ## Decisiones clave
 
