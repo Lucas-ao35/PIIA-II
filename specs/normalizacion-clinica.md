@@ -12,6 +12,10 @@ La extracción por sí sola produce texto localizado, pero no resuelve el proble
 
 Se definirá una etapa posterior a la extracción que intente asociar cada entidad clínica a un código estándar. Su resultado se incorporará a la entidad correspondiente del JSON canónico descrito en `generacion-json.md`, sin definir un segundo formato de documento. La normalización usará las correspondencias proporcionadas por los datasets o por los recursos terminológicos autorizados. Cuando no exista una coincidencia inequívoca, la entidad se conservará con estado `not_found` en vez de inventar un código. Los casos ambiguos usarán el estado `ambiguous`.
 
+La primera implementación utilizará un normalizador basado en diccionario, construido a partir de las correspondencias observadas en las anotaciones de entrenamiento de PharmaCoNER. Este enfoque constituye una línea base inicial y no pretende cubrir toda la terminología SNOMED CT.
+
+Se priorizará disponer de una normalización funcional y evaluable para las menciones de fármacos antes de ampliar la cobertura a otras categorías clínicas o incorporar mecanismos de normalización más complejos.
+
 El siguiente fragmento ilustra los campos de normalización dentro de una entidad; los nombres y estados deben seguir el contrato de `generacion-json.md`:
 
 ```json
@@ -29,7 +33,8 @@ Los campos de `coding` podrán ser `null` cuando no haya código. El sistema dis
 - No se generarán códigos mediante similitud textual si la correspondencia no supera el umbral de confianza fijado y documentado.
 - La normalización de fármacos es parte del camino crítico del proyecto y se aborda pronto, en paralelo a la extracción y antes que FHIR. Se prefiere una normalización sencilla que funcione de principio a fin.
 - La primera versión no necesita cubrir todos los sinónimos ni todos los conceptos.
-- El uso de SNOMED CT requiere licencia de afiliado (en España, cubierta por la licencia nacional del Ministerio de Sanidad). Antes de publicar en un repositorio abierto cualquier mapeo, se confirmarán las condiciones de licencia, hasta entonces no se publicarán descripciones (`coding.display`) ni tablas o fragmentos de la terminología. CIE-10-ES presenta menos restricciones.
+- Antes de distribuir públicamente recursos derivados de SNOMED CT, se comprobarán las condiciones de la licencia de afiliado aplicable al proyecto y los permisos de redistribución correspondientes. En España existe una licencia nacional gestionada por el Ministerio de Sanidad, pero se verificará su alcance para el uso concreto del equipo.
+- Hasta confirmar dichas condiciones, no se publicarán descripciones oficiales, extractos de la terminología ni tablas de mapeo que puedan implicar la redistribución de contenido licenciado. Los identificadores numéricos y el código desarrollado por el equipo se tratarán de forma diferenciada respecto al contenido terminológico. CIE-10-ES presenta un marco de acceso distinto, que también se respetará según sus condiciones de uso.
 - Si el acceso a una terminología completa requiere licencia o autorización, se documentarán los recursos permitidos y sus limitaciones.
 - La evaluación se limitará a menciones con una referencia de oro y un mapeo inequívoco al sistema evaluado.
 - El JSON deberá ser válido, codificado en UTF-8 y conservar el orden de las entidades según su aparición en el texto.

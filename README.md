@@ -37,6 +37,15 @@ La primera fase de implementación priorizará fármacos con PharmaCoNER. La inc
 
 El camino óptimo es: **fármacos → detección → normalización → JSON → métricas**. Como la normalización es la parte de mayor riesgo se abordará pronto, priorizando una normalización sencilla y funcional, antes que una buena salida FHIR que carezca de normalización. Tanto esta como las entidades adicionales serían posibles ampliaciones.
 
+### Prioridades de desarrollo
+
+El desarrollo se organiza en dos niveles:
+
+- **Núcleo obligatorio:** procesamiento de menciones de fármacos de principio a fin, incluyendo detección de entidades, normalización terminológica, generación de JSON y evaluación mediante métricas.
+- **Ampliaciones:** incorporación de otras categorías clínicas y conversión de la salida JSON a FHIR.
+
+El núcleo de fármacos tiene prioridad sobre las ampliaciones. Si el tiempo disponible es limitado, se reducirá primero el alcance de FHIR y de las categorías adicionales, sin comprometer la implementación y evaluación del flujo principal.
+
 El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparación de alternativas) queda por decidir. La decisión se tomará tras inspeccionar los corpus, sus anotaciones, las licencias y los recursos disponibles, y se documentará antes de la implementación.
 
 
@@ -190,5 +199,6 @@ Se considera que el proyecto avanza correctamente cuando:
 - La primera versión trabajará únicamente con corpus públicos autorizados y/o textos sintéticos, sin datos identificables de pacientes, por lo que no habrá un riesgo real de fuga de datos.
 - Los resultados son experimentales y no deben interpretarse como información validada para la asistencia sanitaria.
 - El sistema debe distinguir entre una entidad detectada, un código propuesto y una entidad que no se ha podido normalizar.
-- SNOMED CT requiere licencia de afiliado (en España, cubierta por la licencia nacional del Ministerio de Sanidad). Antes de publicar mapeos en un repositorio abierto se confirmarán las condiciones de licencia y no se redistribuirán descripciones ni partes de la terminología hasta entonces.
+- Antes de distribuir públicamente recursos derivados de SNOMED CT, se comprobarán las condiciones de la licencia de afiliado aplicable al proyecto y los permisos de redistribución correspondientes. En España existe una licencia nacional gestionada por el Ministerio de Sanidad, pero se verificará su alcance para el uso concreto del equipo.
+- Hasta confirmar dichas condiciones, no se publicarán descripciones oficiales, extractos de la terminología ni tablas de mapeo que puedan implicar la redistribución de contenido licenciado. Los identificadores numéricos y el código desarrollado por el equipo se tratarán de forma diferenciada respecto al contenido terminológico.
 - La conversión a FHIR no implica por sí sola que los datos sean clínicamente correctos ni que el sistema esté listo para integrarse en producción.
