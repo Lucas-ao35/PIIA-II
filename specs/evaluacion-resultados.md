@@ -42,7 +42,7 @@ El informe incluirá la configuración utilizada: corpus y versión, partición,
 6. El F1 micro global de extracción en prueba es ≥ 0,75 como objetivo inicial; si no se alcanza, se reporta el valor observado y se describen los errores principales.
 7. Para normalización se informa de exactitud top-1 y cobertura; objetivo inicial de exactitud ≥ 0,70 en el subconjunto evaluable, con resultados separados por terminología cuando haya datos suficientes.
 8. El 100 % de los casos JSON válidos de la batería supera la validación del esquema.
-9. El 100 % de los recursos FHIR generados en la batería de prueba supera el validador estructural y las reglas declaradas.
+9. La conversión a FHIR se considerará un criterio de aceptación de la ampliación de interoperabilidad. Su ausencia no impedirá considerar completado el núcleo funcional del proyecto, siempre que se cumplan los criterios relativos a extracción, normalización, generación JSON y evaluación.
 
 ## Fuera de alcance
 
