@@ -37,6 +37,8 @@ Adoptar una **política de normalización conservadora con estados explícitos**
 - SNOMED CT Browser para verificar códigos: [browser.ihtsdotools.org](https://browser.ihtsdotools.org/)
 - CIE-10-ES, recursos oficiales del Ministerio de Sanidad: [sanidad.gob.es](https://www.sanidad.gob.es/)
 
+##
+
 Ejemplo de los tres estados dentro del JSON canónico:
 
 ```json
@@ -44,8 +46,13 @@ Ejemplo de los tres estados dentro del JSON canónico:
   {"text": "enoxaparina", "type": "drug",
    "coding": {"system": "SNOMED_CT", "code": "372744005", "display": "enoxaparina"},
    "normalization_status": "matched"},
+
   {"text": "fármaco anticoagulante", "type": "drug",
    "coding": {"system": null, "code": null, "display": null},
-   "normalization_status": "not_found"}
+   "normalization_status": "not_found"},
+   
+  {"text": "beta", "type": "protein",
+   "coding": {"system": null, "code": null, "display": null},
+   "normalization_status": "ambiguous"}
 ]
 ```

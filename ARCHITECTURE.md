@@ -1,6 +1,6 @@
 # Arquitectura de la solución — CU-03
 
-Este documento describe la arquitectura del prototipo de PLN clínico para CU-03: cómo se organizan las piezas que transforman un texto clínico en español en entidades estructuradas, normalizadas e interoperables. La arquitectura da soporte directo a las funcionalidades especificadas en `specs/`.
+Este documento describe la arquitectura del prototipo para la extracción y estructuración de información clínica en español mediante PLN: cómo se organizan las piezas que transforman un texto clínico en español en entidades estructuradas, normalizadas e interoperables. La arquitectura da soporte directo a las funcionalidades especificadas en los `specs/`.
 
 ## Visión general
 
@@ -64,42 +64,42 @@ flowchart LR
 - **Responsabilidad**: leer los archivos BRAT de PharmaCoNER (texto en `.txt`, anotaciones en `.ann`), unir cada mención con su offset de caracteres y su código SNOMED CT gold, y exponer el resultado como estructuras de Python por partición oficial (train / dev / test).
 - **Recibe**: rutas a los directorios del corpus en formato BRAT.
 - **Produce**: documentos con texto original, lista de entidades (texto, categoría, `start`, `end`, código) y estadísticas agregadas.
-- **Notas**: es el único componente que conoce el formato físico del corpus, el resto del sistema trabaja con estructuras ya parseadas. El parser BRAT está ya implementado y en uso por el visualizador.
+- Es el único componente que conoce el formato físico del corpus, el resto del sistema trabaja con estructuras ya parseadas. El parser BRAT está ya implementado y en uso por el visualizador.
 
 ### Extracción de entidades (NER)
 
 - **Responsabilidad**: detectar menciones clínicas en texto libre en español y asignarles categoría (`drug`, `disease`, `symptom`, `procedure`), conservando el texto original intacto y los offsets exactos. Especificado en [`specs/extraccion-entidades.md`](specs/extraccion-entidades.md).
 - **Recibe**: texto en español (corpus público o sintético).
 - **Produce**: lista de menciones con `text`, `type`, `start`, `end` y, si el método lo proporciona, confianza.
-- **Notas**: la primera fase prioriza fármacos con PharmaCoNER. El enfoque técnico concreto (modelo preentrenado, reglas, ajuste fino) se fijará tras inspeccionar los datos y se documentará en un ADR antes de implementar.
+- La primera fase prioriza fármacos con PharmaCoNER. El enfoque técnico concreto (modelo preentrenado, reglas, ajuste fino) se fijará tras inspeccionar los datos y se documentará en un ADR antes de implementar.
 
 ### Normalización terminológica
 
 - **Responsabilidad**: asociar cada entidad detectada a un código SNOMED CT o CIE-10-ES cuando exista correspondencia inequívoca, y etiquetar explícitamente los casos no resueltos. Especificado en [`specs/normalizacion-clinica.md`](specs/normalizacion-clinica.md).
 - **Recibe**: entidades extraídas + recursos de mapeo (correspondencias de los datasets, recursos terminológicos autorizados).
 - **Produce**: para cada entidad, un bloque `coding` (sistema, código, display) y un `normalization_status` (`matched`, `not_found`, `ambiguous`).
-- **Notas**: no se inventan códigos, los casos sin correspondencia se conservan con estado explícito. Es la etapa de mayor riesgo del proyecto y por eso se aborda pronto en el camino crítico.
+- No se inventan códigos, los casos sin correspondencia se conservan con estado explícito.
 
 ### Generador de JSON canónico
 
 - **Responsabilidad**: consolidar texto original, entidades y resultados de normalización en un único documento JSON conforme al esquema versionado (`schema_version`). Especificado en [`specs/generacion-json.md`](specs/generacion-json.md).
 - **Recibe**: texto original, entidades extraídas, resultados de normalización.
 - **Produce**: documento JSON validable (UTF-8, offsets coherentes, valores permitidos acotados), único contrato de datos entre etapas.
-- **Notas**: el JSON es la representación canónica del prototipo, la salida FHIR se genera a partir de él, nunca en paralelo.
+- El JSON es la representación canónica del prototipo, la salida FHIR se genera a partir de él, nunca en paralelo.
 
 ### Conversor FHIR
 
 - **Responsabilidad**: transformar el subconjunto mapeable del JSON canónico en recursos HL7 FHIR (p. ej. `Condition`, `MedicationStatement`) y validarlos estructuralmente contra la versión de FHIR que se declare. Especificado en [`specs/generacion-fhir.md`](specs/generacion-fhir.md).
 - **Recibe**: JSON canónico validado.
 - **Produce**: archivos FHIR JSON locales e informe de validación, los elementos no representables se informan como tales sin fabricar datos.
-- **Notas**: es una ampliación, se aborda solo cuando el camino crítico (fármacos → detección → normalización → JSON → métricas) funciona de punta a punta.
+- Es una ampliación, se aborda solo cuando el camino crítico (fármacos --> detección --> normalización --> JSON --> métricas) funciona de punta a punta.
 
 ### Evaluación
 
 - **Responsabilidad**: ejecutar el pipeline sobre las particiones del corpus y producir un informe reproducible con métricas por etapa: precisión, recall y F1 (globales y por categoría) para extracción, exactitud top-1 y cobertura para normalización, validez de esquema para JSON y validez estructural para FHIR. Especificado en [`specs/evaluacion-resultados.md`](specs/evaluacion-resultados.md).
 - **Recibe**: particiones del corpus con anotaciones gold y las salidas de cada etapa.
 - **Produce**: informe con configuración completa (corpus, versión, partición, modelo, semilla, fecha) y limitaciones observadas.
-- **Notas**: el conjunto de test se usa solo en la evaluación final, nunca para entrenar ni seleccionar hiperparámetros.
+- El conjunto de test se usa solo en la evaluación final, nunca para entrenar ni seleccionar hiperparámetros.
 
 ### Visualizador Streamlit (`app.py`)
 
@@ -142,7 +142,7 @@ En todo momento el visualizador Streamlit permite inspeccionar cualquier documen
 | Cargador BRAT + visualizador Streamlit | Implementado y operativo | `app/cu03/corpus.py`, `app/app.py` |
 | Extracción (NER) | Implementada con enfoque basado en diccionario / reglas | `app/cu03/ner.py` |
 | Normalización | Implementada y prioritaria en el camino crítico | `app/cu03/normalization.py` |
-| Generador JSON canónico | Implementado y validado | `app/cu03/schema.py`, `app/cu03/pipeline.py` |
+| Generador JSON canónico | Implementado  | `app/cu03/schema.py`, `app/cu03/pipeline.py` |
 | Conversor FHIR | Especificado como ampliación | `specs/generacion-fhir.md` |
 | Evaluación | Implementada con métricas reproducibles | `app/cu03/evaluation.py`, `app/scripts/evaluate.py` |
 
@@ -150,4 +150,4 @@ La arquitectura refleja, por tanto, el estado real del proyecto: algunos bloques
 
 ## Decisiones clave
 
-Las decisiones de implementación que dan forma a esta arquitectura están documentadas como ADRs en `decisions/`:
+Las decisiones de implementación que dan forma a esta arquitectura están documentadas como ADRs en `decisions/`.

@@ -6,11 +6,11 @@ Aceptada
 
 ## Contexto
 
-El proyecto necesita, desde el primer día, textos clínicos en español con anotaciones de referencia (gold) que permitan tanto entrenar y ajustar el sistema como evaluarlo con precisión, recall y F1 sobre datos que no se hayan usado para desarrollar. Las restricciones del proyecto descartan cualquier historia clínica real: solo valen corpus públicos con condiciones de uso compatibles. En la reunión inicial con el tutor se recomendó además comenzar por fármacos, y el SERGAS (referente asistencial vía IANUS) trabaja con SNOMED CT, lo que condiciona la terminología de destino.
+El proyecto necesita, desde el primer día, textos clínicos en español con anotaciones de referencia (gold) que permitan tanto entrenar y ajustar el sistema como evaluarlo con precisión, recall y F1 sobre datos que no se hayan usado para desarrollar. Las restricciones del proyecto descartan cualquier historia clínica real: solo valen corpus públicos con condiciones de uso compatibles. En la reunión inicial con la tutora se recomendó además comenzar por fármacos, y el SERGAS (referente asistencial vía IANUS) trabaja con SNOMED CT, lo que condiciona la terminología de destino.
 
 ## Decisión
 
-Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y proteínas) como corpus inicial del proyecto, en su distribución original en **formato BRAT** (pares `.txt` + `.ann`), consumido por un cargador propio que parsea las anotaciones y las expone con sus offsets de caracteres y códigos SNOMED CT gold. La prioridad de implementación es el camino crítico **fármacos → detección → normalización → JSON → métricas**, las demás entidades (enfermedades, síntomas, procedimientos) quedan como ampliación con DisTEMIST, SympTEMIST y MedProcNER tras comprobar compatibilidad de etiquetas.
+Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y proteínas) como corpus inicial del proyecto, en su distribución original en **formato BRAT** (pares `.txt` + `.ann`), consumido por un cargador propio que parsea las anotaciones y las expone con sus offsets de caracteres y códigos SNOMED CT gold. La prioridad de implementación es el camino crítico **fármacos → detección → normalización → JSON → métricas**, mientras que el resto de entidades (enfermedades, síntomas, procedimientos) quedan como ampliación con DisTEMIST, SympTEMIST y MedProcNER tras comprobar compatibilidad de etiquetas.
 
 ## Motivación
 
@@ -41,6 +41,7 @@ Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y pro
 - Repositorio de corpus clínicos en español: [TeMU-BSC](https://temu.bsc.es/)
 - Formato BRAT: [brat.nlplab.org/standoff.html](https://brat.nlplab.org/standoff.html)
 
+## 
 Ejemplo de anotación BRAT que el cargador parsea (mención con código SNOMED CT gold):
 
 ```text

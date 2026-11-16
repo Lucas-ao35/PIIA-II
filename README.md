@@ -188,11 +188,7 @@ Se considera que el proyecto avanza correctamente cuando:
 ## Seguridad, ética y limitaciones
 
 - La primera versión trabajará únicamente con corpus públicos autorizados y/o textos sintéticos, sin datos identificables de pacientes, por lo que no habrá un riesgo real de fuga de datos.
-
 - Los resultados son experimentales y no deben interpretarse como información validada para la asistencia sanitaria.
-
 - El sistema debe distinguir entre una entidad detectada, un código propuesto y una entidad que no se ha podido normalizar.
-
 - SNOMED CT requiere licencia de afiliado (en España, cubierta por la licencia nacional del Ministerio de Sanidad). Antes de publicar mapeos en un repositorio abierto se confirmarán las condiciones de licencia y no se redistribuirán descripciones ni partes de la terminología hasta entonces.
-
 - La conversión a FHIR no implica por sí sola que los datos sean clínicamente correctos ni que el sistema esté listo para integrarse en producción.
