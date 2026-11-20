@@ -12,6 +12,8 @@ La normalización asocia cada mención detectada a un código de SNOMED CT o CIE
 
 Adoptar una **política de normalización conservadora con estados explícitos**: cada entidad recibe exactamente un resultado de normalización con un estado de tres valores —`matched` (código asignado con correspondencia inequívoca), `not_found` (sin correspondencia defendible, campos `coding` a `null`) y `ambiguous` (candidatos múltiples que requieren revisión)—. No se asigna ningún código por similitud textual que no supere un umbral de confianza fijado y documentado, ninguna entidad sin código se elimina de la salida, y los casos `not_found` y `ambiguous` se contabilizan por separado en la evaluación.
 
+Las entidades `protein` quedan fuera de esta política: no se normalizan y se emiten con `coding` a `null` y el estado `not_applicable`, conforme a [`proteinas-categoria-propia.md`](proteinas-categoria-propia.md).
+
 ## Motivación
 
 - **Honestidad del resultado**: el sistema distingue siempre entre "detecté una mención", "propuse este código" y "no pude normalizarla". Presentar solo códigos ocultaría la cobertura real del prototipo.
@@ -28,7 +30,7 @@ Adoptar una **política de normalización conservadora con estados explícitos**
 ## Consecuencias
 
 - El contrato JSON debe reservar los tres estados y permitir `coding` a `null` sin invalidar el documento.
-- La primera fase dejará sin código (`not_found`) las categorías que aún no tengan fuente de mapeo fiable (todo lo que no sean fármacos/proteínas).
+- La primera fase dejará sin código (`not_found`) las categorías que aún no tengan fuente de mapeo fiable (todo lo que no sean fármacos). Las proteínas no se normalizan y reciben `not_applicable`.
 - La evaluación informa exactitud y cobertura por separado, y los umbrales de similitud (si se usan) deben fijarse y documentarse antes de la evaluación final.
 
 ## Referencias
@@ -39,7 +41,7 @@ Adoptar una **política de normalización conservadora con estados explícitos**
 
 ##
 
-Ejemplo de los tres estados dentro del JSON canónico:
+Ejemplo de los estados de normalización dentro del JSON canónico (esquema 1.1):
 
 ```json
 [
@@ -50,9 +52,13 @@ Ejemplo de los tres estados dentro del JSON canónico:
   {"text": "fármaco anticoagulante", "type": "drug",
    "coding": {"system": null, "code": null, "display": null},
    "normalization_status": "not_found"},
-   
-  {"text": "beta", "type": "protein",
+
+  {"text": "heparina", "type": "drug",
    "coding": {"system": null, "code": null, "display": null},
-   "normalization_status": "ambiguous"}
+   "normalization_status": "ambiguous"},
+
+  {"text": "PSA", "type": "protein",
+   "coding": {"system": null, "code": null, "display": null},
+   "normalization_status": "not_applicable"}
 ]
 ```

@@ -43,7 +43,7 @@ Esquema de ejemplo (fragmento) de la entidad del contrato:
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "language": "es",
   "source_text": "Paciente en tratamiento con enoxaparina.",
   "entities": [

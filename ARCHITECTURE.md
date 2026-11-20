@@ -28,8 +28,8 @@ flowchart LR
 
     subgraph PIPE ["Pipeline PLN"]
         NER["Extracción de entidades<br/>(NER)<br/>mención + tipo + offsets"]
-        NORM["Normalización<br/>SNOMED CT / CIE-10-ES<br/>matched · not_found · ambiguous"]
-        JSONGEN["Generador JSON canónico<br/>schema_version 1.0<br/>validación JSON Schema"]
+        NORM["Normalización<br/>SNOMED CT / CIE-10-ES<br/>matched · not_found · ambiguous<br/>(protein: not_applicable)"]
+        JSONGEN["Generador JSON canónico<br/>schema_version 1.1<br/>validación JSON Schema"]
         FHIRGEN["Conversor FHIR<br/>Condition · MedicationStatement<br/>validación estructural"]
     end
 
@@ -68,10 +68,10 @@ flowchart LR
 
 ### Extracción de entidades (NER)
 
-- **Responsabilidad**: detectar menciones clínicas en texto libre en español y asignarles categoría (`drug`, `disease`, `symptom`, `procedure`), conservando el texto original intacto y los offsets exactos. Especificado en [`specs/extraccion-entidades.md`](specs/extraccion-entidades.md).
+- **Responsabilidad**: detectar menciones clínicas en texto libre en español y asignarles categoría (`drug`, `disease`, `symptom`, `procedure`, `protein`), conservando el texto original intacto y los offsets exactos. Especificado en [`specs/extraccion-entidades.md`](specs/extraccion-entidades.md).
 - **Recibe**: texto en español (corpus público o sintético).
 - **Produce**: lista de menciones con `text`, `type`, `start`, `end` y, si el método lo proporciona, confianza.
-- La primera fase prioriza fármacos con PharmaCoNER.
+- La primera fase prioriza fármacos con PharmaCoNER. Las proteínas (`PROTEINAS`) se detectan como categoría propia `protein`, nunca como `drug`; el mapeo de etiquetas está en [`decisions/proteinas-categoria-propia.md`](decisions/proteinas-categoria-propia.md).
 - **Enfoque técnico**: detección basada en **diccionario y reglas**, con el diccionario construido a partir de las anotaciones gold de las particiones de entrenamiento y reglas deterministas de coincidencia sobre el texto original. La decisión, sus alternativas (modelos NER aprendidos, LLM, reglas morfológicas) y sus consecuencias se documentan en [`decisions/ner-diccionario-reglas.md`](decisions/ner-diccionario-reglas.md).
 - **Limitación principal**: solo se reconocen los términos y variantes incluidos en el diccionario, las formas no contempladas no se detectan. Esto fija un techo de recall igual a la cobertura léxica del diccionario sobre la partición evaluada, que se debe reportar.
 
@@ -79,8 +79,9 @@ flowchart LR
 
 - **Responsabilidad**: asociar cada entidad detectada a un código SNOMED CT o CIE-10-ES cuando exista correspondencia inequívoca, y etiquetar explícitamente los casos no resueltos. Especificado en [`specs/normalizacion-clinica.md`](specs/normalizacion-clinica.md).
 - **Recibe**: entidades extraídas + recursos de mapeo (correspondencias de los datasets, recursos terminológicos autorizados).
-- **Produce**: para cada entidad, un bloque `coding` (sistema, código, display) y un `normalization_status` (`matched`, `not_found`, `ambiguous`).
+- **Produce**: para cada entidad, un bloque `coding` (sistema, código, display) y un `normalization_status` (`matched`, `not_found`, `ambiguous`, `not_applicable` para `protein`).
 - No se inventan códigos, los casos sin correspondencia se conservan con estado explícito.
+- Las entidades `protein` no se normalizan, se emiten con `coding` a `null` y estado `not_applicable` y no cuentan en las métricas de normalización.
 
 ### Generador de JSON canónico
 
@@ -93,7 +94,7 @@ flowchart LR
 
 - **Responsabilidad**: transformar el subconjunto mapeable del JSON canónico en recursos HL7 FHIR (p. ej. `Condition`, `MedicationStatement`) y validarlos estructuralmente contra la versión de FHIR que se declare. Especificado en [`specs/generacion-fhir.md`](specs/generacion-fhir.md).
 - **Recibe**: JSON canónico validado.
-- **Produce**: archivos FHIR JSON locales e informe de validación, los elementos no representables se informan como tales sin fabricar datos.
+- **Produce**: archivos FHIR JSON locales e informe de validación, los elementos no representables se informan como tales sin fabricar datos. Las entidades `protein` no se convierten.
 - Es una ampliación, se aborda solo cuando el camino crítico (fármacos --> detección --> normalización --> JSON --> métricas) funciona de punta a punta.
 
 ### Evaluación
@@ -130,7 +131,7 @@ La relación entre los bloques de arquitectura y el código real es, por tanto, 
 
 1. **Ingesta**: el cargador lee los archivos BRAT de PharmaCoNER (o un texto sintético de prueba) y produce el documento con texto y, si existe, anotación gold.
 2. **Extracción**: el componente NER recibe el texto y devuelve las menciones detectadas con categoría y offsets. El texto no se modifica, de modo que `texto[start:end]` siempre coincide con la mención.
-3. **Normalización**: cada mención pasa por el normalizador, que intenta asociarle un código de SNOMED CT / CIE-10-ES y, en cualquier caso, emite un estado (`matched` / `not_found` / `ambiguous`). Una entidad sin código no desaparece del flujo.
+3. **Normalización**: cada mención pasa por el normalizador, que intenta asociarle un código de SNOMED CT / CIE-10-ES y, en cualquier caso, emite un estado (`matched` / `not_found` / `ambiguous`). Las entidades `protein` no pasan por el normalizador y reciben `not_applicable`. Una entidad sin código no desaparece del flujo.
 4. **JSON canónico**: el generador consolida texto, entidades y códigos en el documento JSON con `schema_version`, `language`, `source_text` y `entities`, y lo valida contra el esquema. Este documento es el contrato entre todas las etapas posteriores.
 5. **FHIR**: el conversor toma el JSON canónico y genera los recursos FHIR del subconjunto mapeable, validándolos estructuralmente, lo no representable se informa, no se inventa.
 6. **Evaluación**: en paralelo, el evaluador compara las salidas de extracción y normalización con las anotaciones gold del corpus y produce el informe de métricas.
@@ -157,8 +158,9 @@ Las decisiones de implementación que dan forma a esta arquitectura están docum
 | ADR | Decisión | Componente afectado |
 |---|---|---|
 | [`corpus-pharmaconer-brat.md`](decisions/corpus-pharmaconer-brat.md) | Corpus inicial PharmaCoNER en formato BRAT, fármacos como camino crítico | Cargador de corpus |
+| [`estrategia-particiones-evaluacion.md`](decisions/estrategia-particiones-evaluacion.md) | Uso de las particiones oficiales train / dev / test | NER, normalización y evaluación |
 | [`ner-diccionario-reglas.md`](decisions/ner-diccionario-reglas.md) | Detección de entidades farmacológicas mediante diccionario y reglas | Extracción (NER) |
 | [`normalizacion-conservadora.md`](decisions/normalizacion-conservadora.md) | Normalización conservadora con estados explícitos | Normalización |
 | [`pipeline-json-canonico.md`](decisions/pipeline-json-canonico.md) | Pipeline por etapas desacopladas con JSON canónico como contrato | Todo el pipeline |
-| [`estrategia-particiones-evaluacion.md`](decisions/estrategia-particiones-evaluacion.md) | Uso de las particiones oficiales train / dev / test | NER, normalización y evaluación |
+| [`proteinas-categoria-propia.md`](decisions/proteinas-categoria-propia.md) | Proteínas como categoría propia `protein`, fuera de la normalización y de FHIR | NER, normalización, JSON, FHIR y evaluación |
 | [`visualizador-streamlit.md`](decisions/visualizador-streamlit.md) | Visualizador de corpus y resultados con Streamlit | Visualizador |

@@ -31,7 +31,7 @@ Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y pro
 
 - La primera versión del sistema se centra en fármacos y proteínas, las demás categorías no tendrán código hasta que se incorporen sus corpus.
 - El cargador BRAT (`dataloaders`) queda como única pieza que conoce el formato físico, añadir un corpus nuevo es añadir un parser, no tocar el pipeline.
-- Las etiquetas de PharmaCoNER (`NORMALIZABLES`, `PROTEINAS`, `UNCLEAR`, `NO_NORMALIZABLES`) deben mapearse a las categorías del proyecto y ese mapeo debe documentarse.
+- Las etiquetas de PharmaCoNER (`NORMALIZABLES`, `PROTEINAS`, `UNCLEAR`, `NO_NORMALIZABLES`) deben mapearse a las categorías del proyecto y ese mapeo está documentado en [`proteinas-categoria-propia.md`](proteinas-categoria-propia.md).
 
 ## Referencias
 
