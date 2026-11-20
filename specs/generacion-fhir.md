@@ -13,6 +13,7 @@ FHIR ofrece una forma estandarizada de representar e intercambiar información s
 Un componente que reciba el JSON canónico y genere recursos FHIR JSON para los tipos de información acordados. Como punto de partida:
 - las enfermedades o problemas de salud podrán representarse mediante `Condition`;
 - los fármacos mencionados podrán representarse como `MedicationStatement` únicamente si el texto permite justificar que existe información sobre medicación tomada o declarada; una simple mención de un fármaco no se interpretará automáticamente como tratamiento activo;
+- las proteínas (`protein`) no se convierten a recursos FHIR y se registran como tipo no mapeado (ver [`decisions/proteinas-categoria-propia.md`](../decisions/proteinas-categoria-propia.md));
 - síntomas/signos y procedimientos se mapearán a recursos apropiados solo cuando el significado de la mención y el contenido disponible permitan una representación defendible. El recurso elegido y sus límites deberán documentarse antes de implementar el mapeo.
 
 Cada recurso deberá incluir, cuando corresponda, un identificador de sistema y código en `CodeableConcept.coding`, además de un `text` que conserve el concepto original cuando sea adecuado. No se inventarán fechas, pacientes, estados clínicos ni otros campos ausentes del texto de origen.

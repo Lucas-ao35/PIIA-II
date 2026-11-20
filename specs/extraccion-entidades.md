@@ -14,8 +14,7 @@ La información clínica aparece expresada de muchas formas en el texto libre. D
 
 Un componente que reciba un texto en español y devuelva una lista de menciones detectadas. Para cada mención incluirá, como mínimo:
 - texto original de la mención
-- categoría (`type`: `drug`, `disease`, `symptom` o `procedure`, según los valores definidos en `generacion-json.md`)
-- índice de inicio y fin siguiendo una convención documentada
+- categoría (`type`: `drug`, `disease`, `symptom`, `procedure` o `protein`, según los valores definidos en `generacion-json.md`)- índice de inicio y fin siguiendo una convención documentada
 - identificador del documento de origen, cuando se procese un corpus anotado
 - confianza del modelo, si el método utilizado la proporciona
 
@@ -25,7 +24,8 @@ La información contextual adicional, como negación o temporalidad, queda fuera
 ## Restricciones y supuestos
 
 - La entrada será texto en español procedente de corpus públicos permitidos o ejemplos sintéticos.
-- Antes de usar un corpus, se documentará el mapeo de sus etiquetas a las cuatro categorías del proyecto.
+- Antes de usar un corpus, se documentará el mapeo de sus etiquetas a las categorías del proyecto.
+    - El mapeo de PharmaCoNER está en [`decisions/proteinas-categoria-propia.md`](../decisions/proteinas-categoria-propia.md).
 - Los límites de cada mención deben corresponder al texto original, incluidos acentos y signos que formen parte de ella.
 - No se procesarán historias clínicas reales ni se utilizarán los resultados para diagnosticar.
 - El enfoque técnico de la primera fase (diccionario y reglas) se documenta en [`decisions/ner-diccionario-reglas.md`](../decisions/ner-diccionario-reglas.md). Si en una ampliación se usa un modelo preentrenado, se registrarán su nombre, versión y licencia.

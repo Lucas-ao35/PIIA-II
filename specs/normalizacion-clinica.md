@@ -25,7 +25,7 @@ El siguiente fragmento ilustra los campos de normalización dentro de una entida
 }
 ```
 
-Los campos de `coding` podrán ser `null` cuando no haya código. El sistema distinguirá entre una entidad con código, una entidad no mapeada y un caso ambiguo que requiera revisión. El conjunto completo de estados permitidos (`matched`, `not_found`, `ambiguous`) se define únicamente en `generacion-json.md`.
+Los campos de `coding` podrán ser `null` cuando no haya código. El sistema distinguirá entre una entidad con código, una entidad no mapeada y un caso ambiguo que requiera revisión. El conjunto completo de estados permitidos (`matched`, `not_found`, `ambiguous`, `not_applicable`) se define únicamente en `generacion-json.md`.
 
 ## Restricciones y supuestos
 
@@ -40,6 +40,7 @@ Los campos de `coding` podrán ser `null` cuando no haya código. El sistema dis
 - El JSON deberá ser válido, codificado en UTF-8 y conservar el orden de las entidades según su aparición en el texto.
 - El identificador del documento no contendrá el texto clínico ni datos personales.
 - La primera fase de implementación priorizará fármacos y podrá dejar sin código las categorías aún no cubiertas por una fuente de mapeo fiable.
+- Las entidades `protein` quedan fuera de la normalización: no se envían al normalizador, reciben `normalization_status` = `not_applicable`, no se usan para construir las tablas de correspondencias y no cuentan en las métricas de normalización, tal y como se especifica en [`decisions/proteinas-categoria-propia.md`](../decisions/proteinas-categoria-propia.md).
 
 ## Criterios de aceptación
 

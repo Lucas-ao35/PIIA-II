@@ -14,7 +14,7 @@ El componente recibirá el texto original, las entidades extraídas y sus result
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "language": "es",
   "source_text": "Texto clínico de ejemplo.",
   "entities": [
@@ -40,8 +40,10 @@ El ejemplo es ilustrativo; en la ejecución real las posiciones y el fragmento d
 
 Fijamos el conjunto de valores válidos, que utilizaremos a lo largo del proyecto:
 
-- `type`: `disease` · `symptom` · `drug` · `procedure`
-- `normalization_status`: `matched` · `not_found` · `ambiguous`
+- `type`: `disease` · `symptom` · `drug` · `procedure` · `protein`
+- `normalization_status`: `matched` · `not_found` · `ambiguous` · `not_applicable`
+
+El tipo `protein` corresponde a la etiqueta `PROTEINAS` de PharmaCoNER y es independiente de `drug`. Las entidades `protein` no se normalizan: llevan `coding` a `null` y `normalization_status` = `not_applicable`. Estos valores se incorporan en la versión 1.1 del esquema, tal y como se indica en [`decisions/proteinas-categoria-propia.md`](../decisions/proteinas-categoria-propia.md).
 
 ## Restricciones y supuestos
 

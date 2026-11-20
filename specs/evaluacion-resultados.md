@@ -26,6 +26,7 @@ El informe incluirá la configuración utilizada: corpus y versión, partición,
 - El conjunto de prueba sólo se usará en la evaluación final.
 - Las métricas se calcularán con una herramienta o implementación versionada y documentada.
 - Se documentará cualquier diferencia entre las etiquetas del corpus y las categorías del proyecto.
+- La categoría `protein` se evalúa en extracción por separado de `drug`, pero se excluye de las métricas de normalización (exactitud top-1 y cobertura), que se calculan solo sobre `drug`.
 - No se combinarán puntuaciones de corpus incompatibles sin explicar las transformaciones.
 - Los casos sin entidades deberán incluirse en el cálculo de errores de documento y no eliminarse silenciosamente.
 - Se informarán las categorías con pocos ejemplos para obtener métricas estables.
