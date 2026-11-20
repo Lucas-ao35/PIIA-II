@@ -28,8 +28,7 @@ La información contextual adicional, como negación o temporalidad, queda fuera
 - Antes de usar un corpus, se documentará el mapeo de sus etiquetas a las cuatro categorías del proyecto.
 - Los límites de cada mención deben corresponder al texto original, incluidos acentos y signos que formen parte de ella.
 - No se procesarán historias clínicas reales ni se utilizarán los resultados para diagnosticar.
-- El enfoque técnico está por decidir. Si se usa un modelo preentrenado, se registrarán su nombre, versión y licencia.
-
+- El enfoque técnico de la primera fase (diccionario y reglas) se documenta en [`decisions/ner-diccionario-reglas.md`](../decisions/ner-diccionario-reglas.md). Si en una ampliación se usa un modelo preentrenado, se registrarán su nombre, versión y licencia.
 
 ## Criterios de aceptación
 

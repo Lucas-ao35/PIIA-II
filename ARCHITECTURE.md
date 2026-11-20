@@ -71,7 +71,9 @@ flowchart LR
 - **Responsabilidad**: detectar menciones clínicas en texto libre en español y asignarles categoría (`drug`, `disease`, `symptom`, `procedure`), conservando el texto original intacto y los offsets exactos. Especificado en [`specs/extraccion-entidades.md`](specs/extraccion-entidades.md).
 - **Recibe**: texto en español (corpus público o sintético).
 - **Produce**: lista de menciones con `text`, `type`, `start`, `end` y, si el método lo proporciona, confianza.
-- La primera fase prioriza fármacos con PharmaCoNER. El enfoque técnico concreto (modelo preentrenado, reglas, ajuste fino) se fijará tras inspeccionar los datos y se documentará en un ADR antes de implementar.
+- La primera fase prioriza fármacos con PharmaCoNER.
+- **Enfoque técnico**: detección basada en **diccionario y reglas**, con el diccionario construido a partir de las anotaciones gold de las particiones de entrenamiento y reglas deterministas de coincidencia sobre el texto original. La decisión, sus alternativas (modelos NER aprendidos, LLM, reglas morfológicas) y sus consecuencias se documentan en [`decisions/ner-diccionario-reglas.md`](decisions/ner-diccionario-reglas.md).
+- **Limitación principal**: solo se reconocen los términos y variantes incluidos en el diccionario, las formas no contempladas no se detectan. Esto fija un techo de recall igual a la cobertura léxica del diccionario sobre la partición evaluada, que se debe reportar.
 
 ### Normalización terminológica
 
@@ -150,4 +152,13 @@ La arquitectura refleja, por tanto, el estado real del proyecto: algunos bloques
 
 ## Decisiones clave
 
-Las decisiones de implementación que dan forma a esta arquitectura están documentadas como ADRs en `decisions/`.
+Las decisiones de implementación que dan forma a esta arquitectura están documentadas como ADRs en `decisions/`:
+
+| ADR | Decisión | Componente afectado |
+|---|---|---|
+| [`corpus-pharmaconer-brat.md`](decisions/corpus-pharmaconer-brat.md) | Corpus inicial PharmaCoNER en formato BRAT, fármacos como camino crítico | Cargador de corpus |
+| [`ner-diccionario-reglas.md`](decisions/ner-diccionario-reglas.md) | Detección de entidades farmacológicas mediante diccionario y reglas | Extracción (NER) |
+| [`normalizacion-conservadora.md`](decisions/normalizacion-conservadora.md) | Normalización conservadora con estados explícitos | Normalización |
+| [`pipeline-json-canonico.md`](decisions/pipeline-json-canonico.md) | Pipeline por etapas desacopladas con JSON canónico como contrato | Todo el pipeline |
+| [`estrategia-particiones-evaluacion.md`](decisions/estrategia-particiones-evaluacion.md) | Uso de las particiones oficiales train / dev / test | NER, normalización y evaluación |
+| [`visualizador-streamlit.md`](decisions/visualizador-streamlit.md) | Visualizador de corpus y resultados con Streamlit | Visualizador |

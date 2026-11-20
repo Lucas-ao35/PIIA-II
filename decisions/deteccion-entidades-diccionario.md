@@ -14,7 +14,7 @@ Al inspeccionar el corpus se observa que:
 
 - Las menciones gold son, en su mayoría, nombres de principios activos, marcas comerciales y proteínas con formas superficiales relativamente estables y que se repiten entre documentos.
 - Cada mención gold lleva asociado su código SNOMED CT, de modo que las mismas anotaciones de entrenamiento sirven para construir tanto el vocabulario de detección como la tabla de correspondencias del normalizador.
-- El corpus ofrece particiones oficiales train / dev / test, lo que permite construir recursos solo con train (o train + dev en la configuración final) y medir en test sin fuga de información (ver [`estrategia-particiones-evaluacion.md`](estrategia-particiones-evaluacion.md)).
+- El corpus ofrece particiones oficiales train / dev / test, lo que permite construir recursos solo con train (o train + dev en la configuración final) y medir en test sin fuga de información ([`estrategia-particiones-evaluacion.md`](estrategia-particiones-evaluacion.md)).
 
 Además, el sistema debe conservar el texto de entrada sin modificar y garantizar que `texto[start:end] == text` para cada mención, tal y como se especifica en `specs/extraccion-entidades.md`, y la ejecución debe ser local y reproducible.
 
@@ -41,7 +41,7 @@ El extractor respeta la interfaz de la etapa NER definida en la arquitectura: cu
 ## Alternativas consideradas
 
 - **Modelo NER basado en aprendizaje automático (p. ej. transformer clínico en español ajustado a PharmaCoNER)**: existen modelos públicos de esta familia, como [`PlanTL-GOB-ES/bsc-bio-ehr-es-pharmaconer`](https://huggingface.co/PlanTL-GOB-ES/bsc-bio-ehr-es-pharmaconer) (RoBERTa clínico-biomédico). Generalizan mejor a formas no vistas y en principio superan el recall de un diccionario, pero exigen gestionar entrenamiento o inferencia con pesos externos, alineamiento de subtokens con offsets de carácter, registro de versión, licencia y semilla, y más recursos de cómputo. Además, los resultados declarados por un modelo de terceros no son directamente comparables con nuestro protocolo sin reevaluarlo con nuestras particiones y mapeo de etiquetas. No se adopta en la primera fase pero queda como posible alternativa a comparar con la línea base de diccionario.
-- **Modelos de lenguaje generativos (LLM) con instrucciones o pocos ejemplos**: flexibles y sin necesidad de entrenamiento, pero no garantizan offsets exactos, pues la mención generada puede no coincidir literalmente con el texto. Son no deterministas, dificultan la reproducibilidad, pueden alucinar entidades y, si se usan como servicio remoto, implican enviar texto clínico a terceros, por lo que lo descartamos.
+- **Modelos de lenguaje generativos (LLMs) con instrucciones o pocos ejemplos**: flexibles y sin necesidad de entrenamiento, pero no garantizan offsets exactos, pues la mención generada puede no coincidir literalmente con el texto. Son no deterministas, dificultan la reproducibilidad, pueden alucinar entidades y, si se usan como servicio remoto, implican enviar texto clínico a terceros, por lo que lo descartamos.
 - **Reglas puramente morfológicas (sufijos farmacológicos como -cilina, -prazol, -olol) sin diccionario**: capturarían algunas formas no vistas, pero con muchos falsos positivos y sin cubrir marcas comerciales ni proteínas. Descartado como enfoque principal; puede considerarse como regla complementaria si se valida en dev.
 
 ## Consecuencias

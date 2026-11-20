@@ -46,7 +46,7 @@ El desarrollo se organiza en dos niveles:
 
 El núcleo de fármacos tiene prioridad sobre las ampliaciones. Si el tiempo disponible es limitado, se reducirá primero el alcance de FHIR y de las categorías adicionales, sin comprometer la implementación y evaluación del flujo principal.
 
-El enfoque técnico (modelos preentrenados, reglas, ajuste de modelos o comparación de alternativas) queda por decidir. La decisión se tomará tras inspeccionar los corpus, sus anotaciones, las licencias y los recursos disponibles, y se documentará antes de la implementación.
+Tras inspeccionar el corpus, sus anotaciones, las licencias y los recursos disponibles, la extracción de fármacos de la primera fase se basa en un diccionario y reglas. La decisión, las alternativas consideradas (modelos NER aprendidos, modelos de lenguaje) y sus limitaciones, en particular el techo de recall impuesto por la cobertura del diccionario, se documentan en [decisions/ner-diccionario-reglas.md](decisions/ner-diccionario-reglas.md).
 
 
 ## Alcance
