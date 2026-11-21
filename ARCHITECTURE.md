@@ -30,7 +30,7 @@ flowchart LR
         NER["Extracción de entidades<br/>(NER)<br/>mención + tipo + offsets"]
         NORM["Normalización<br/>SNOMED CT / CIE-10-ES<br/>matched · not_found · ambiguous<br/>(protein: not_applicable)"]
         JSONGEN["Generador JSON canónico<br/>schema_version 1.1<br/>validación JSON Schema"]
-        FHIRGEN["Conversor FHIR<br/>Condition · MedicationStatement<br/>validación estructural"]
+        FHIRGEN["Conversor FHIR R4 4.0.1<br/>Condition · MedicationStatement<br/>Observation · Procedure<br/>validación estructural"]
     end
 
     EVAL["Evaluación<br/>P / R / F1 por categoría<br/>exactitud y cobertura de códigos"]
@@ -92,7 +92,7 @@ flowchart LR
 
 ### Conversor FHIR
 
-- **Responsabilidad**: transformar el subconjunto mapeable del JSON canónico en recursos HL7 FHIR (p. ej. `Condition`, `MedicationStatement`) y validarlos estructuralmente contra la versión de FHIR que se declare. Especificado en [`specs/generacion-fhir.md`](specs/generacion-fhir.md).
+- **Responsabilidad**: transformar el subconjunto mapeable del JSON canónico en recursos HL7 FHIR R4 (4.0.1) (`Condition` para enfermedades, `MedicationStatement` para fármacos, `Observation` para síntomas/signos y `Procedure` para procedimientos) y validarlos estructuralmente con el validador oficial de HL7. Especificado en [`specs/generacion-fhir.md`](specs/generacion-fhir.md).
 - **Recibe**: JSON canónico validado.
 - **Produce**: archivos FHIR JSON locales e informe de validación, los elementos no representables se informan como tales sin fabricar datos. Las entidades `protein` no se convierten.
 - Es una ampliación, se aborda solo cuando el camino crítico (fármacos --> detección --> normalización --> JSON --> métricas) funciona de punta a punta.

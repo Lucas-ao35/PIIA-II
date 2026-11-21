@@ -54,7 +54,8 @@ Tras inspeccionar el corpus, sus anotaciones, las licencias y los recursos dispo
 ### Incluido en el proyecto
 
 - Procesamiento de textos clínicos en español procedentes de corpus públicos permitidos.
-- Inicio de la extracción con fármacos mediante el corpus PharmaCoNER; ampliación prevista a enfermedades, síntomas/signos y procedimientos con DisTEMIST, SympTEMIST y MedProcNER, si sus datos son compatibles.
+- Extracción de fármacos en la primera fase mediante el corpus PharmaCoNER.
+- Detección de proteínas y genes de PharmaCoNER como categoría propia (`protein`), sin normalización ni conversión a FHIR, como se especifica en [decisions/proteinas-categoria-propia.md](decisions/proteinas-categoria-propia.md).
 - Detección de menciones y clasificación por tipo de entidad.
 - Conservación del texto original de cada mención y de sus posiciones en el texto cuando el método y el corpus lo permitan.
 - Normalización a SNOMED CT o CIE-10-ES cuando se disponga de recursos de referencia y la correspondencia sea inequívoca. Las entidades ambiguas o sin correspondencia podrán quedar sin código.
@@ -65,7 +66,7 @@ Tras inspeccionar el corpus, sus anotaciones, las licencias y los recursos dispo
 
 ### Fuera del alcance
 
-- Abordaje del resto de entidades (enfermedades, síntomas/signos y procedimientos).
+- Enfermedades, síntomas/signos y procedimientos en la primera fase. Se abordarán como ampliación posterior con DisTEMIST, SympTEMIST y MedProcNER solo si sus corpus resultan compatibles y disponibles; su ausencia no impide completar el núcleo del proyecto.
 - Uso de historias clínicas reales o de datos personales de pacientes.
 - Diagnóstico, recomendación terapéutica o toma de decisiones clínicas.
 - Integración con IANUS, sistemas del SERGAS u otros sistemas de producción.
@@ -89,7 +90,7 @@ Se priorizarán corpus públicos escritos en español, comprobando sus condicion
 - [PlanTL-GOB-ES](https://huggingface.co/PlanTL-GOB-ES): corpus y modelos
 - [SPACCC](https://github.com/PlanTL-GOB-ES/SPACCC): corpus base de casos clínicos en español del que se derivan varios recursos
 - [PharmaCoNER](https://huggingface.co/datasets/PlanTL-GOB-ES/pharmaconer): fármacos y proteínas
-- [DisTEMIST](https://temu.bsc.es/distemist): enfermedades 
+- [DisTEMIST](https://temu.bsc.es/distemist): enfermedades
 - [MedProcNER](https://zenodo.org/records/8224056): procedimientos
 - [SympTEMIST](https://zenodo.org/records/10635215): síntomas y signos
 - [CodiEsp](https://temu.bsc.es/codiesp/): codificación CIE-10
@@ -98,8 +99,8 @@ Como referencias terminológicas se considerarán SNOMED CT y CIE-10-ES, siempre
 - [SNOMED CT](https://www.snomed.org/): terminología clínica que incorpora IANUS
 - CIE-10-ES: recursos oficiales del Ministerio de Sanidad
 - [HL7 FHIR](https://www.hl7.org/fhir/): formato de salida interoperable
-    
-La mención de una fuente no implica que todas sus anotaciones sean compatibles entre sí ni que cubran las cuatro clases de entidades.
+
+La mención de una fuente no implica que todas sus anotaciones sean compatibles entre sí ni que cubran todas las categorías de entidades del proyecto.
 
 
 ## Equipo
@@ -147,7 +148,7 @@ Documentación principal:
 - [README.md](README.md): visión general del caso de uso, motivación, alcance y estructura del repositorio.
 - [ARCHITECTURE.md](ARCHITECTURE.md): componentes del sistema, flujo de datos y diseño global.
 - [decisions](decisions/): decisiones de implementación con contexto, alternativas y consecuencias.
-- [specs](specs/): requisitos funcionales de extracción, normalización, JSON y evaluación.
+- [specs](specs/): requisitos funcionales de extracción, normalización, JSON, FHIR, evaluación y ejecución local.
 - [app/README.md](app/README.md): guía operativa del sistema y ejecución con uv.
 
 ---
@@ -165,7 +166,9 @@ La documentación técnica del proyecto está alineada con el código real y con
 - [specs/evaluacion-resultados.md](specs/evaluacion-resultados.md) → [app/cu03/evaluation.py](app/cu03/evaluation.py) y [app/scripts/evaluate.py](app/scripts/evaluate.py)
   - la evaluación computa métricas de extracción, normalización y validez de salida.
 - [specs/generacion-fhir.md](specs/generacion-fhir.md) → pendiente como ampliación
-  - la conversión a FHIR queda documentada como etapa posterior al camino crítico, sin inventar datos no representables.
+    - la conversión a FHIR (R4 4.0.1) queda documentada como etapa posterior al camino crítico, sin inventar datos no representables.
+- [specs/ejecucion-local.md](specs/ejecucion-local.md) → [app/pyproject.toml](app/pyproject.toml) y [app/README.md](app/README.md)
+  - la ejecución local, las dependencias y las órdenes de prueba y evaluación están documentadas y son reproducibles.
 
 La coherencia general del repositorio es buena: la arquitectura, las ADRs, las specs y el código funcional se apoyan entre sí y no contradicen el caso de uso del proyecto.
 
