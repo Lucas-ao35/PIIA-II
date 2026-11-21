@@ -22,9 +22,9 @@ Además, el sistema debe conservar el texto de entrada sin modificar y garantiza
 
 Implementar la detección de entidades farmacológicas con un sistema basado en diccionario y reglas (`app/cu03/ner.py`):
 
-- **Diccionario**: lexicón de formas superficiales de menciones (términos y sus variantes) construido a partir de las anotaciones gold de las particiones de entrenamiento de cada ejecución (`train` durante el desarrollo; `train + dev` en la configuración final). La partición evaluada nunca contribuye al diccionario.
-- **Reglas**: búsqueda de las entradas del diccionario sobre el texto original con reglas deterministas de coincidencia (respeto de límites de palabra, resolución de solapamientos a favor de la coincidencia más larga y tratamiento homogéneo de variantes de escritura cuando la regla correspondiente esté implementada), devolviendo `text`, `type`, `start`, `end` sobre el texto sin modificar y, cuando el método lo permite, una puntuación de confianza.
-- **Categoría**: el tipo asignado se deriva de la etiqueta de origen de la entrada del diccionario, según el mapeo de etiquetas de PharmaCoNER a las categorías del proyecto previsto en [`corpus-pharmaconer-brat.md`](corpus-pharmaconer-brat.md).
+- **Diccionario**: lexicón de formas superficiales de menciones (términos y sus variantes) construido a partir de las anotaciones gold de las particiones de entrenamiento de cada ejecución (`train` durante el desarrollo; `train + dev` en la configuración final). Solo se conservan las formas cuya precisión en entrenamiento (veces que aparece anotada frente a veces que aparece en el texto) alcanza el umbral `min_precision`, que se fija en dev. La partición evaluada nunca contribuye al diccionario.
+- **Reglas**: búsqueda de las entradas del diccionario sobre el texto original con reglas deterministas de coincidencia: comparación sin distinguir mayúsculas y minúsculas, respeto de límites de palabra (no se detectan subcadenas, p. ej. "omeprazol" en "omeprazolemia") y resolución de solapamientos a favor de la coincidencia más larga. Devuelve `text`, `type`, `start`, `end` sobre el texto sin modificar y una puntuación de confianza.
+- **Categoría**: el tipo asignado se deriva de la etiqueta de origen de la entrada del diccionario, según el mapeo de etiquetas de PharmaCoNER documentado en [`proteinas-categoria-propia.md`](proteinas-categoria-propia.md): `NORMALIZABLES` y `NO_NORMALIZABLES` → `drug`, `PROTEINAS` → `protein` y `UNCLEAR` no se emite. El mismo diccionario detecta fármacos y proteínas, cada uno en su categoría.
 
 El extractor respeta la interfaz de la etapa NER definida en la arquitectura: cualquier sustitución futura por otro método solo exige mantener el contrato JSON canónico ([`pipeline-json-canonico.md`](pipeline-json-canonico.md)).
 
@@ -47,13 +47,9 @@ El extractor respeta la interfaz de la etapa NER definida en la arquitectura: cu
 ## Consecuencias
 
 - La extracción es determinista, explicable y ligera, y produce offsets exactos sobre el texto original por construcción, con una precisión esperable alta sobre las formas incluidas en el diccionario.
-
 - El propio diccionario **limita la exhaustividad**, pues el sistema **solo reconoce los términos y variantes incluidos en el diccionario**. Un fármaco escrito de una forma no contemplada (otra grafía, abreviatura, errata, marca comercial no vista o fármaco ausente de entrenamiento) no se detecta. Tampoco se usa el contexto, lo que puede producir falsos positivos en formas polisémicas.
-
-- Esta limitación fija un **techo de recall** igual a la **cobertura léxica del diccionario** sobre la partición evaluada: $\text{recall} \leq \frac{\#\{\text{menciones gold cuya forma está en el diccionario}\}}{\#\{\text{menciones gold}\}}$​. Ninguna mejora de las reglas lo supera, condiciona el objetivo de F1 ≥ 0,75 y las menciones perdidas tampoco llegan a la normalización.
-
+- Esta limitación fija un **techo de recall** igual a la **cobertura léxica del diccionario** sobre la partición evaluada: $\text{recall} \leq \frac{\#\{\text{menciones gold cuya forma está en el diccionario}\}}{\#\{\text{menciones gold}\}}$​. Ninguna mejora de las reglas lo supera, condiciona el objetivo de F1 ≥ 0,75 y las menciones perdidas tampoco llegan a la normalización. Subir `min_precision` aumenta la precisión a costa de bajar ese techo. En dev, entrenando solo con train, `drug` obtiene P 0,940 y R 0,650 (F1 0,769), y los falsos negativos se deben sobre todo a fármacos no vistos en train.
 - Surge la necesidad de reportar esa cobertura y separar los falsos negativos por *"forma fuera del diccionario"* y *"forma en el diccionario no detectada"*, sin usar test para modificar el diccionario.
-
 - El diccionario se construye solo con las particiones de entrenamiento de cada ejecución, conforme a [`estrategia-particiones-evaluacion.md`](estrategia-particiones-evaluacion.md), y las reglas se fijan en dev. Si el recall en dev resulta insuficiente, se ampliará el diccionario o se incorporará un modelo NER aprendido.
 
 
