@@ -48,9 +48,9 @@ flowchart LR
     NORM --> JSONGEN
     NOTE["PROTEINAS: categoría propia prevista en ADR;<br/>integración en JSON pendiente (schema 1.0 no la admite)"]
     NER -. "mapeo pendiente" .-> NOTE
-    JSONGEN --> FHIRGEN
+    JSONGEN -. "solo especificado" .-> FHIRGEN
     JSONGEN --> OUTJ
-    FHIRGEN --> OUTF
+    FHIRGEN -. "solo especificado" .-> OUTF
     LOADER -- "anotaciones gold" --> EVAL
     NER -- "predicciones" --> EVAL
     NORM -- "códigos propuestos" --> EVAL
@@ -135,7 +135,7 @@ La relación entre los bloques de arquitectura y el código real es, por tanto, 
 2. **Extracción**: el componente NER recibe el texto y devuelve las menciones detectadas con categoría y offsets. El texto no se modifica, de modo que `texto[start:end]` siempre coincide con la mención.
 3. **Normalización**: el pipeline actual aplica el normalizador de coincidencia exacta a las menciones detectadas y obtiene `matched`, `not_found` o `ambiguous`. La exclusión de proteínas de esta etapa está definida como decisión, pero aún requiere implementarse: actualmente `Pipeline.normalize()` procesa todas las menciones. Una entidad no normalizada no debe desaparecer de la salida.
 4. **JSON canónico**: el generador consolida texto, entidades y resultados de normalización en un documento con `schema_version: 1.0`, `language`, `source_text` y `entities`, y lo valida contra el esquema. Es la salida común del pipeline; no es el formato interno obligatorio de cada llamada entre componentes.
-5. **FHIR**: el conversor toma el JSON canónico y genera los recursos FHIR del subconjunto mapeable, validándolos estructuralmente, lo no representable se informa, no se inventa.
+5. **FHIR (ampliación pendiente)**: la especificación prevé que un conversor tome el JSON canónico y genere recursos FHIR del subconjunto mapeable, validándolos estructuralmente y marcando lo no representable sin inventar datos. Esta conversión todavía no está implementada.
 6. **Evaluación**: en paralelo, el evaluador compara las salidas de extracción y normalización con las anotaciones gold del corpus y produce el informe de métricas.
 
 En todo momento el visualizador Streamlit permite inspeccionar cualquier documento del corpus con sus menciones, códigos y JSON canónico, lo que facilita el análisis cualitativo de errores que alimenta las mejoras del pipeline.
