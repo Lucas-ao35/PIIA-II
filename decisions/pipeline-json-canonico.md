@@ -44,7 +44,7 @@ Fragmento de una entidad del documento JSON final:
 
 ```json
 {
-  "schema_version": "1.1",
+  "schema_version": "1.0",
   "language": "es",
   "source_text": "Paciente en tratamiento con enoxaparina.",
   "entities": [
