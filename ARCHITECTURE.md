@@ -9,9 +9,9 @@ El sistema es un **pipeline secuencial por etapas desacopladas**, donde cada eta
 1. **Entrada**: casos clínicos en español del corpus PharmaCoNER (formato BRAT) y textos sintéticos.
 2. **Extracción (NER)**: detección y clasificación de menciones clínicas con sus offsets exactos.
 3. **Normalización**: asociación de cada mención a códigos SNOMED CT / CIE-10-ES cuando la correspondencia es defendible.
-4. **Salida JSON canónica**: consolidación de texto, entidades y códigos en un documento validado contra un esquema versionado.
-5. **Conversión FHIR**: representación del subconjunto mapeable como recursos HL7 FHIR validados estructuralmente.
-6. **Evaluación**: métricas reproducibles (precisión, recall, F1, exactitud de códigos, cobertura) por etapa.
+4. **Salida JSON canónica**: consolidación final de texto, entidades y resultados de normalización en un documento validado contra el esquema 1.0.
+5. **Conversión FHIR**: ampliación especificada, todavía no implementada, para representar el subconjunto mapeable como recursos HL7 FHIR.
+6. **Evaluación**: métricas reproducibles (precisión, recall, F1, exactitud de códigos y cobertura) por etapa.
 
 En paralelo, un **visualizador Streamlit** permite explorar el corpus y los resultados de cada etapa sin ejecutar el pipeline a mano.
 
@@ -24,12 +24,12 @@ flowchart LR
         SINT[("Textos sintéticos<br/>de prueba")]
     end
 
-    LOADER["Cargador BRAT<br/>(dataloaders)<br/>texto + entidades gold + códigos"]
+    LOADER["Cargador BRAT<br/>(app/cu03/corpus.py)<br/>texto + anotaciones gold + códigos"]
 
     subgraph PIPE ["Pipeline PLN"]
         NER["Extracción de entidades<br/>(NER)<br/>mención + tipo + offsets"]
-        NORM["Normalización<br/>SNOMED CT / CIE-10-ES<br/>matched · not_found · ambiguous<br/>(protein: not_applicable)"]
-        JSONGEN["Generador JSON canónico<br/>schema_version 1.1<br/>validación JSON Schema"]
+        NORM["Normalización actual<br/>SNOMED CT<br/>matched · not_found · ambiguous"]
+        JSONGEN["Generador JSON canónico<br/>schema_version 1.0<br/>validación JSON Schema"]
         FHIRGEN["Conversor FHIR R4 4.0.1<br/>Condition · MedicationStatement<br/>Observation · Procedure<br/>validación estructural"]
     end
 
@@ -46,6 +46,8 @@ flowchart LR
     LOADER --> UI
     NER --> NORM
     NORM --> JSONGEN
+    NOTE["PROTEINAS: categoría propia prevista en ADR;<br/>integración en JSON pendiente (schema 1.0 no la admite)"]
+    NER -. "mapeo pendiente" .-> NOTE
     JSONGEN --> FHIRGEN
     JSONGEN --> OUTJ
     FHIRGEN --> OUTF
@@ -59,19 +61,19 @@ flowchart LR
 
 ## Componentes
 
-### Cargador de corpus (`dataloaders`)
+### Cargador de corpus (`app/cu03/corpus.py`)
 
 - **Responsabilidad**: leer los archivos BRAT de PharmaCoNER (texto en `.txt`, anotaciones en `.ann`), unir cada mención con su offset de caracteres y su código SNOMED CT gold, y exponer el resultado como estructuras de Python por partición oficial (train / dev / test).
 - **Recibe**: rutas a los directorios del corpus en formato BRAT.
-- **Produce**: documentos con texto original, lista de entidades (texto, categoría, `start`, `end`, código) y estadísticas agregadas.
-- Es el único componente que conoce el formato físico del corpus, el resto del sistema trabaja con estructuras ya parseadas. El parser BRAT está ya implementado y en uso por el visualizador.
+- **Produce**: objetos `Document` con texto original, anotaciones (`Annotation`), etiquetas PharmaCoNER, offsets y códigos gold.
+- Es el único componente que conoce el formato físico del corpus; el resto trabaja con objetos Python ya parseados. El parser BRAT está implementado y lo utiliza el visualizador y el pipeline.
 
 ### Extracción de entidades (NER)
 
 - **Responsabilidad**: detectar menciones clínicas en texto libre en español y asignarles categoría (`drug`, `disease`, `symptom`, `procedure`, `protein`), conservando el texto original intacto y los offsets exactos. Especificado en [`specs/extraccion-entidades.md`](specs/extraccion-entidades.md).
 - **Recibe**: texto en español (corpus público o sintético).
 - **Produce**: lista de menciones con `text`, `type`, `start`, `end` y, si el método lo proporciona, confianza.
-- La primera fase prioriza fármacos con PharmaCoNER. Las proteínas (`PROTEINAS`) se detectan como categoría propia `protein`, nunca como `drug`; el mapeo de etiquetas está en [`decisions/proteinas-categoria-propia.md`](decisions/proteinas-categoria-propia.md).
+- La primera fase prioriza los fármacos. El extractor trabaja con las etiquetas originales de PharmaCoNER; en el mapeo actual a JSON 1.0, `NORMALIZABLES` y `NO_NORMALIZABLES` se convierten en `drug`, mientras que `PROTEINAS` y `UNCLEAR` se excluyen. La decisión de representar `PROTEINAS` como categoría independiente `protein` está documentada en [`decisions/proteinas-categoria-propia.md`](decisions/proteinas-categoria-propia.md), pero todavía no está integrada en el esquema ni en el pipeline actuales.
 - **Enfoque técnico**: detección basada en **diccionario y reglas**, con el diccionario construido a partir de las anotaciones gold de las particiones de entrenamiento y reglas deterministas de coincidencia sobre el texto original. La decisión, sus alternativas (modelos NER aprendidos, LLM, reglas morfológicas) y sus consecuencias se documentan en [`decisions/ner-diccionario-reglas.md`](decisions/ner-diccionario-reglas.md).
 - **Limitación principal**: solo se reconocen los términos y variantes incluidos en el diccionario, las formas no contempladas no se detectan. Esto fija un techo de recall igual a la cobertura léxica del diccionario sobre la partición evaluada, que se debe reportar.
 
@@ -79,16 +81,16 @@ flowchart LR
 
 - **Responsabilidad**: asociar cada entidad detectada a un código SNOMED CT o CIE-10-ES cuando exista correspondencia inequívoca, y etiquetar explícitamente los casos no resueltos. Especificado en [`specs/normalizacion-clinica.md`](specs/normalizacion-clinica.md).
 - **Recibe**: entidades extraídas + recursos de mapeo (correspondencias de los datasets, recursos terminológicos autorizados).
-- **Produce**: para cada entidad, un bloque `coding` (sistema, código, display) y un `normalization_status` (`matched`, `not_found`, `ambiguous`, `not_applicable` para `protein`).
-- No se inventan códigos, los casos sin correspondencia se conservan con estado explícito.
-- Las entidades `protein` no se normalizan, se emiten con `coding` a `null` y estado `not_applicable` y no cuentan en las métricas de normalización.
+- **Produce**: un `NormalizationResult` por mención, con `coding` y estado `matched`, `not_found` o `ambiguous`.
+- El normalizador actual realiza coincidencia exacta de la forma tokenizada y aplica `min_agreement` a la proporción del código más frecuente. No utiliza similitud textual difusa.
+- La ADR de proteínas establece que `protein` debe quedar fuera de la normalización y usar `not_applicable`; sin embargo, el `Pipeline.normalize()` actual procesa todas las menciones antes de que el constructor del JSON filtre las etiquetas no admitidas. Esta integración está pendiente y no debe considerarse implementada.
 
 ### Generador de JSON canónico
 
 - **Responsabilidad**: consolidar texto original, entidades y resultados de normalización en un único documento JSON conforme al esquema versionado (`schema_version`). Especificado en [`specs/generacion-json.md`](specs/generacion-json.md).
 - **Recibe**: texto original, entidades extraídas, resultados de normalización.
-- **Produce**: documento JSON validable (UTF-8, offsets coherentes, valores permitidos acotados), único contrato de datos entre etapas.
-- El JSON es la representación canónica del prototipo, la salida FHIR se genera a partir de él, nunca en paralelo.
+- **Produce**: documento JSON final validable (UTF-8, offsets coherentes y valores permitidos acotados).
+- El pipeline no intercambia literalmente un JSON entre cada etapa: NER y normalización utilizan estructuras Python (`Mention`, `NormalizationResult` y diccionarios). El JSON se construye al final, se valida contra el esquema 1.0 y constituye la representación persistente/de intercambio para consumidores posteriores. La salida FHIR, cuando se implemente, deberá generarse a partir de ese JSON validado.
 
 ### Conversor FHIR
 
@@ -107,8 +109,8 @@ flowchart LR
 ### Visualizador Streamlit (`app.py`)
 
 - **Responsabilidad**: interfaz de exploración del corpus y de los resultados: visor de casos clínicos con menciones resaltadas por categoría y enlazadas a su código SNOMED CT, estadísticas del corpus (distribución por categoría y partición, fármacos y códigos más frecuentes) e inspector del JSON canónico.
-- **Recibe**: la salida del cargador BRAT y, a medida que se implementen, los resultados de NER y normalización.
-- **Produce**: interfaz web local, no forma parte del camino de procesamiento, solo de la exploración y demostración.
+- **Recibe**: la salida del cargador BRAT para explorar documentos y anotaciones; además, el tab de demostración utiliza el pipeline para procesar texto sintético introducido por el usuario.
+- **Produce**: interfaz web local. No entrena ni modifica los componentes del pipeline; permite explorar el corpus, visualizar predicciones y consultar resultados.
 
 ## Mapeo a módulos de código real
 
@@ -116,10 +118,10 @@ La arquitectura descrita en este documento corresponde a la implementación actu
 
 | Bloque arquitectónico | Módulo real | Responsable | Observación |
 |---|---|---|---|
-| Ingesta y carga del corpus | `app/cu03/corpus.py` | carga BRAT + preparación de documentos | devuelve documentos con texto, etiquetas y offsets |
+| Ingesta y carga del corpus | `app/cu03/corpus.py` | carga BRAT + preparación de documentos | devuelve objetos `Document` con anotaciones, etiquetas y offsets |
 | NER / extracción | `app/cu03/ner.py` | detección de entidades y puntuación | extrae menciones con tipo y confianza |
 | Normalización terminológica | `app/cu03/normalization.py` | asignación de códigos a entidades | mantiene estados `matched`, `not_found`, `ambiguous` |
-| JSON canónico | `app/cu03/schema.py` + `app/cu03/pipeline.py` | validación y construcción del documento final | documento con `schema_version`, `source_text` y `entities` |
+| JSON canónico | `app/cu03/schema.py` + `app/cu03/pipeline.py` | construcción y validación del documento final | esquema actual 1.0; no admite `protein` ni `not_applicable` |
 | Evaluación | `app/cu03/evaluation.py` | métricas de extracción y normalización | compara predicciones con gold |
 | Orquestación del pipeline | `app/cu03/pipeline.py` | encadena extracción → normalización → JSON | punto central de procesamiento |
 | Ejecución de scripts | `app/scripts/run_pipeline.py`, `app/scripts/evaluate.py` | entradas CLI y flujo reproducible | útiles para uso del proyecto y automatización |
@@ -131,8 +133,8 @@ La relación entre los bloques de arquitectura y el código real es, por tanto, 
 
 1. **Ingesta**: el cargador lee los archivos BRAT de PharmaCoNER (o un texto sintético de prueba) y produce el documento con texto y, si existe, anotación gold.
 2. **Extracción**: el componente NER recibe el texto y devuelve las menciones detectadas con categoría y offsets. El texto no se modifica, de modo que `texto[start:end]` siempre coincide con la mención.
-3. **Normalización**: cada mención pasa por el normalizador, que intenta asociarle un código de SNOMED CT / CIE-10-ES y, en cualquier caso, emite un estado (`matched` / `not_found` / `ambiguous`). Las entidades `protein` no pasan por el normalizador y reciben `not_applicable`. Una entidad sin código no desaparece del flujo.
-4. **JSON canónico**: el generador consolida texto, entidades y códigos en el documento JSON con `schema_version`, `language`, `source_text` y `entities`, y lo valida contra el esquema. Este documento es el contrato entre todas las etapas posteriores.
+3. **Normalización**: el pipeline actual aplica el normalizador de coincidencia exacta a las menciones detectadas y obtiene `matched`, `not_found` o `ambiguous`. La exclusión de proteínas de esta etapa está definida como decisión, pero aún requiere implementarse: actualmente `Pipeline.normalize()` procesa todas las menciones. Una entidad no normalizada no debe desaparecer de la salida.
+4. **JSON canónico**: el generador consolida texto, entidades y resultados de normalización en un documento con `schema_version: 1.0`, `language`, `source_text` y `entities`, y lo valida contra el esquema. Es la salida común del pipeline; no es el formato interno obligatorio de cada llamada entre componentes.
 5. **FHIR**: el conversor toma el JSON canónico y genera los recursos FHIR del subconjunto mapeable, validándolos estructuralmente, lo no representable se informa, no se inventa.
 6. **Evaluación**: en paralelo, el evaluador compara las salidas de extracción y normalización con las anotaciones gold del corpus y produce el informe de métricas.
 
@@ -142,11 +144,12 @@ En todo momento el visualizador Streamlit permite inspeccionar cualquier documen
 
 | Componente | Estado | Evidencia de implementación |
 |---|---|---|
-| Cargador BRAT + visualizador Streamlit | Implementado y operativo | `app/cu03/corpus.py`, `app/app.py` |
-| Extracción (NER) | Implementada con enfoque basado en diccionario / reglas | `app/cu03/ner.py` |
-| Normalización | Implementada y prioritaria en el camino crítico | `app/cu03/normalization.py` |
-| Generador JSON canónico | Implementado  | `app/cu03/schema.py`, `app/cu03/pipeline.py` |
-| Conversor FHIR | Especificado como ampliación | `specs/generacion-fhir.md` |
+| Cargador BRAT + visualizador Streamlit | Implementados; exploración y demostración local | `app/cu03/corpus.py`, `app/app.py` |
+| Extracción (NER) | Implementada como gazetteer/diccionario con reglas | `app/cu03/ner.py` |
+| Normalización | Implementada para las menciones que procesa el pipeline | `app/cu03/normalization.py` |
+| Generador JSON canónico | Implementado con esquema 1.0 | `app/cu03/schema.py`, `app/cu03/pipeline.py` |
+| Categoría `protein` independiente | Decidida en ADR, pero pendiente de integración en NER/pipeline/esquema | `decisions/proteinas-categoria-propia.md`; el esquema actual excluye `PROTEINAS` |
+| Conversor FHIR | Especificado como ampliación; no implementado | `specs/generacion-fhir.md` |
 | Evaluación | Implementada con métricas reproducibles | `app/cu03/evaluation.py`, `app/scripts/evaluate.py` |
 
 La arquitectura refleja, por tanto, el estado real del proyecto: algunos bloques están implementados de forma funcional, mientras que otros siguen siendo ampliaciones o especificaciones que se ejecutarán después del camino crítico.
