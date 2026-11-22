@@ -10,14 +10,14 @@ El sistema debe encadenar varias transformaciones (extracción de menciones, nor
 
 ## Decisión
 
-Estructurar el sistema como un **pipeline secuencial de componentes desacoplados**, donde cada etapa recibe y produce **el JSON canónico versionado** definido en `specs/generacion-json.md` (`schema_version`, `language`, `source_text`, `entities` con `text`, `type`, `start`, `end`, `coding`, `normalization_status`). El JSON canónico es el único contrato de datos entre etapas: la normalización enriquece las entidades del JSON, la conversión FHIR consume el JSON ya normalizado, y la evaluación mide cada etapa contra ese mismo documento. Toda salida se valida contra un **JSON Schema** publicado junto al proyecto antes de pasar a la etapa siguiente.
+Estructurar el sistema como un **pipeline secuencial de componentes desacoplados**. Las etapas se conectan mediante interfaces Python y utilizan estructuras internas adecuadas a cada responsabilidad: el NER devuelve objetos `Mention`, el normalizador devuelve objetos `NormalizationResult` y el orquestador construye un diccionario Python con el documento completo. Al finalizar, ese documento se serializa como **JSON canónico versionado** y se valida contra el esquema publicado en `app/cu03/schema.py` (actualmente `schema_version: 1.0`). Por tanto, el JSON es la representación canónica de salida y el contrato para persistencia e interoperabilidad posterior; no es obligatorio serializar y volver a parsear JSON entre cada llamada interna. La conversión FHIR, cuando se implemente, consumirá el JSON validado.
 
 ## Motivación
 
-- **Aislamiento de errores**: un error de normalización (código equivocado) no debe confundirse con uno de extracción (mención no detectada). Con etapas desacopladas que intercambian un documento común, cada métrica mide una cosa.
-- **Trazabilidad**: el JSON conserva `source_text` y los offsets exactos, así que cualquier resultado puede verificarse contra el texto original sin reejecutar nada.
-- **Testabilidad**: cada componente se prueba con entradas y salidas JSON, sin acoplarse a los internos de los demás, las baterías de pruebas exigidas por las specs se definen naturalmente sobre el contrato.
-- **Extensibilidad**: la salida FHIR es una etapa más que consume el contrato, si cambia el modelo de NER o el normalizador, nada más se entera mientras respeten el esquema.
+- **Aislamiento de errores**: la separación de componentes permite distinguir un error de extracción de uno de normalización y evaluar cada etapa por separado.
+- **Trazabilidad**: el JSON final conserva `source_text` y los offsets exactos, así que cualquier resultado puede verificarse contra el texto original.
+- **Testabilidad**: cada componente se prueba mediante sus interfaces y estructuras de entrada/salida; además, el documento final se valida contra el JSON Schema.
+- **Extensibilidad**: los componentes internos pueden evolucionar sin cambiar la representación persistente, siempre que el documento final siga respetando el esquema versionado.
 
 ## Alternativas consideradas
 
@@ -28,8 +28,9 @@ Estructurar el sistema como un **pipeline secuencial de componentes desacoplados
 ## Consecuencias
 
 - Mantener el esquema JSON (nombres de campo, valores permitidos de `type` y `normalization_status`, convención `start` inclusivo / `end` exclusivo) es una obligación de compatibilidad dentro de cada `schema_version`.
-- El validador de esquema debe estar versionado con el proyecto para que la evaluación sea reproducible.
-- Las entidades sin código circulan por todo el pipeline con `coding` a `null` y estado explícito: ninguna etapa puede descartarlas.
+- El validador de esquema debe estar versionado con el proyecto para que la evaluación sea reproducible. La implementación actual valida el documento final con `schema_version: 1.0`; la categoría `protein` y el estado `not_applicable` todavía no están admitidos por ese esquema.
+- Las entidades sin código que pertenezcan al alcance de normalización deben conservarse con `coding` a `null` y estado explícito: ninguna etapa puede descartarlas silenciosamente.
+- Las estructuras internas Python no sustituyen al contrato JSON publicado; son una decisión de implementación entre componentes.
 
 ## Referencias
 
@@ -37,9 +38,9 @@ Estructurar el sistema como un **pipeline secuencial de componentes desacoplados
 - Validación en Python: [python-jsonschema (readthedocs)](https://python-jsonschema.readthedocs.io/)
 
 
-##
+## Ejemplo de salida
 
-Esquema de ejemplo (fragmento) de la entidad del contrato:
+Fragmento de una entidad del documento JSON final:
 
 ```json
 {
