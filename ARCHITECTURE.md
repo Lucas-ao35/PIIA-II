@@ -166,4 +166,5 @@ Las decisiones de implementación que dan forma a esta arquitectura están docum
 | [`normalizacion-conservadora.md`](decisions/normalizacion-conservadora.md) | Normalización conservadora con estados explícitos | Normalización |
 | [`pipeline-json-canonico.md`](decisions/pipeline-json-canonico.md) | Pipeline por etapas desacopladas con JSON canónico como contrato | Todo el pipeline |
 | [`proteinas-categoria-propia.md`](decisions/proteinas-categoria-propia.md) | Proteínas como categoría propia `protein`, fuera de la normalización y de FHIR | NER, normalización, JSON, FHIR y evaluación |
+| [`tratamiento-no-normalizables-unclear.md`](decisions/tratamiento-no-normalizables-unclear.md) | Extracción de `NO_NORMALIZABLES` como `drug`, intentando su normalización según el resultado real, y exclusión de la etiqueta `UNCLEAR` del pipeline | NER, normalización, JSON, FHIR y evaluación |
 | [`visualizador-streamlit.md`](decisions/visualizador-streamlit.md) | Visualizador de corpus y resultados con Streamlit | Visualizador |
