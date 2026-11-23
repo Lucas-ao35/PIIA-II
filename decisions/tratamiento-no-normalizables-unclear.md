@@ -10,7 +10,7 @@ PharmaCoNER 1.1 distingue cuatro etiquetas para las menciones de fármacos y sus
 
 - `NORMALIZABLES`: menciones con un código de normalización asociado en el corpus.
 - `NO_NORMALIZABLES`: menciones de fármacos o sustancias sin código asociado en la anotación.
-- `PROTEINAS`: proteínas y genes, tratados como una categoría independiente mediante el ADR [Proteínas como categoría propia](proteinas-categoria-propia.md).
+- `PROTEINAS`: proteínas y genes, tratados como una categoría independiente mediante el ADR [`proteinas-categoria-propia`](proteinas-categoria-propia.md).
 - `UNCLEAR`: menciones dudosas o heterogéneas que no se pueden asignar de forma fiable a las categorías anteriores.
 
 Es necesario definir explícitamente qué ocurre con `NO_NORMALIZABLES` y `UNCLEAR` durante la extracción, la normalización y la generación del JSON canónico. En particular, no se deben confundir la etiqueta original del corpus y el resultado que obtiene el normalizador: que una mención esté anotada como `NO_NORMALIZABLES` significa que no tiene código de referencia en esa anotación, pero no implica por sí solo que el sistema deba omitirla ni que se haya ejecutado una búsqueda sin éxito.
