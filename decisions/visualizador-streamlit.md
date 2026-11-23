@@ -6,15 +6,15 @@ Aceptada
 
 ## Contexto
 
-El proyecto necesita inspeccionar de forma continua un corpus anotado (PharmaCoNER) y, más adelante, los resultados del pipeline: leer casos clínicos con sus menciones resaltadas, verificar que los offsets y códigos cuadren con el texto y obtener estadísticas del corpus (distribución por categoría y partición, términos y códigos más frecuentes). El equipo es de perfil Python/pandas y el prototipo es académico, con ejecución local y sin requisito de servicio en producción.
+El proyecto necesita inspeccionar de forma continua un corpus anotado (PharmaCoNER) y los resultados del pipeline: leer casos clínicos con sus menciones resaltadas, verificar que los offsets y códigos cuadren con el texto y obtener estadísticas del corpus (distribución por categoría y partición, términos y códigos más frecuentes). También interesa disponer de una demostración local que procese texto sintético y permita inspeccionar la salida. El equipo es de perfil Python/pandas y el prototipo es académico, sin requisito de servicio en producción.
 
 ## Decisión
 
-Implementar el visualizador como **aplicación Streamlit** (`app.py`) que consume directamente la salida del cargador BRAT: visor de casos con menciones resaltadas por categoría y enlazadas al SNOMED CT Browser, tabla e inspector de entidades, panel de estadísticas del corpus con Altair y vista del JSON canónico de cada documento. El visualizador es una capa de **solo lectura** sobre los datos: no forma parte del camino de procesamiento del pipeline.
+Implementar el visualizador como **aplicación Streamlit** (`app/app.py`). La aplicación incluye un explorador del corpus que consume el cargador BRAT, resalta menciones, muestra tablas e inspectores de entidades y estadísticas con Altair; además, dispone de una pestaña de demostración que invoca el pipeline para procesar texto sintético y presenta las predicciones y el JSON resultante. La interfaz no entrena ni modifica los recursos del pipeline: la inferencia de esa pestaña es una operación de demostración, separada de la exploración del corpus.
 
 ## Motivación
 
-- **Ciclo corto de desarrollo**: la aplicación completa (parser, resaltado por offsets, estadísticas, inspector JSON) cabe en un único script de Python sin frontend ni API que mantener, lo que deja el tiempo del equipo para el pipeline, que es el núcleo evaluable del proyecto.
+- **Ciclo corto de desarrollo**: la interfaz de exploración y demostración se implementa en Python sin frontend ni API independiente, lo que deja el tiempo del equipo para el pipeline, que es el núcleo evaluable del proyecto.
 - **Alineado con el stack**: el equipo ya trabaja con pandas. Streamlit lo consume de forma nativa (tablas, `st.dataframe`, caché de carga) y Altair viene integrado para los gráficos.
 - **Útil para la depuración cualitativa**: ver el texto con las menciones marcadas y el código al lado es la forma más rápida de detectar errores de offsets o de mapeo de etiquetas antes de ejecutar la evaluación cuantitativa.
 - **Buen vehículo de demostración**: una interfaz navegable comunica el caso de uso mucho mejor que un notebook.
@@ -29,7 +29,13 @@ Implementar el visualizador como **aplicación Streamlit** (`app.py`) que consum
 
 - El resaltado de menciones se implementa insertando marcas HTML sobre el texto original por offsets. Hay que mantener el filtro de solapamientos (quedarse con la mención más larga) y escapar el HTML para no romper la vista.
 - La carga del corpus se cachea (`st.cache_data`) para no reparsear los archivos BRAT en cada interacción.
-- Al ser una capa de solo lectura, la evolución del pipeline no obliga a reescribir la app: basta con que las etapas nuevas respeten el contrato JSON canónico.
+- La aplicación no modifica ni reentrena el pipeline. La pestaña de demostración sí ejecuta inferencia sobre el texto introducido y muestra la salida; si cambia la interfaz del pipeline o el esquema JSON, esa integración deberá mantenerse actualizada.
+
+## Alcance implementado y evolución prevista
+
+**Implementado en la aplicación actual:** exploración de documentos BRAT, resaltado de anotaciones, estadísticas por categoría y partición, tablas e inspector de entidades, vista del JSON del caso y pestaña de demostración que ejecuta inferencia sobre texto sintético.
+
+**Evolución prevista:** ampliar la inspección para consumir de forma homogénea resultados persistidos de cada etapa del pipeline, una vez estabilizados el contrato JSON y las salidas de evaluación. La visualización no sustituye al evaluador ni modifica los resultados.
 
 ## Referencias
 
@@ -39,9 +45,9 @@ Implementar el visualizador como **aplicación Streamlit** (`app.py`) que consum
 - SNOMED CT Browser (enlace por código de concepto): [browser.ihtsdotools.org](https://browser.ihtsdotools.org/)
 
 
-## 
+## Ejemplo de resaltado por offsets
 
-Fragmento del patrón usado en `app.py` para resaltar por offsets (de final a principio para no desplazar índices):
+Fragmento del patrón usado en `app/app.py` para resaltar de final a principio y no desplazar índices:
 
 ```python
 chars = list(raw_text)

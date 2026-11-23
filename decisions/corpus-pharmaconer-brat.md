@@ -30,8 +30,17 @@ Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y pro
 ## Consecuencias
 
 - La primera versión del sistema se centra en fármacos y proteínas, las demás categorías no tendrán código hasta que se incorporen sus corpus.
-- El cargador BRAT (`dataloaders`) queda como única pieza que conoce el formato físico, añadir un corpus nuevo es añadir un parser, no tocar el pipeline.
-- Las etiquetas de PharmaCoNER (`NORMALIZABLES`, `PROTEINAS`, `UNCLEAR`, `NO_NORMALIZABLES`) deben mapearse a las categorías del proyecto y ese mapeo está documentado en [`proteinas-categoria-propia.md`](proteinas-categoria-propia.md).
+- El cargador BRAT (`app/cu03/corpus.py`) queda como única pieza que conoce el formato físico; añadir un corpus nuevo debería consistir en incorporar un parser que produzca los mismos objetos `Document` y `Annotation`, sin acoplar el pipeline al formato original.
+- Las etiquetas de PharmaCoNER (`NORMALIZABLES`, `PROTEINAS`, `UNCLEAR`, `NO_NORMALIZABLES`) deben mapearse a las categorías del proyecto. El criterio de dominio para proteínas se documenta en [`proteinas-categoria-propia.md`](proteinas-categoria-propia.md); la tabla siguiente distingue la decisión conceptual del mapeo que admite actualmente el esquema 1.0.
+
+| Etiqueta PharmaCoNER | Interpretación en el proyecto | Mapeo actual a JSON 1.0 |
+|---|---|---|
+| `NORMALIZABLES` | Fármaco con código gold | `drug` |
+| `NO_NORMALIZABLES` | Fármaco sin normalización gold utilizable | `drug` |
+| `PROTEINAS` | Proteína/gen, categoría propia; no es un fármaco y no debe normalizarse como tal | Pendiente: el código actual la filtra (`None`) porque el esquema 1.0 no admite `protein` |
+| `UNCLEAR` | Mención dudosa/no asignable a las categorías del proyecto | Se excluye (`None`) |
+
+La implementación del cargador está en `app/cu03/corpus.py` (`LABEL_TO_TYPE`). En la versión actual, `NORMALIZABLES` y `NO_NORMALIZABLES` se convierten en `drug`, mientras que `PROTEINAS` y `UNCLEAR` no se emiten en el JSON. La categoría independiente `protein` es una decisión documentada, pero requiere una ampliación coordinada del esquema y del pipeline.
 
 ## Referencias
 
@@ -41,8 +50,9 @@ Usar **PharmaCoNER 1.1, subtrack 1** (detección de menciones de fármacos y pro
 - Repositorio de corpus clínicos en español: [TeMU-BSC](https://temu.bsc.es/)
 - Formato BRAT: [brat.nlplab.org/standoff.html](https://brat.nlplab.org/standoff.html)
 
-## 
-Ejemplo de anotación BRAT que el cargador parsea (mención con código SNOMED CT gold):
+## Ejemplo de anotación BRAT
+
+Ejemplo de anotación que el cargador parsea (mención con código SNOMED CT gold):
 
 ```text
 T1  NORMALIZABLES 234 240  aspirina

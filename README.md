@@ -60,13 +60,14 @@ Tras inspeccionar el corpus, sus anotaciones, las licencias y los recursos dispo
 - Conservación del texto original de cada mención y de sus posiciones en el texto cuando el método y el corpus lo permitan.
 - Normalización a SNOMED CT o CIE-10-ES cuando se disponga de recursos de referencia y la correspondencia sea inequívoca. Las entidades ambiguas o sin correspondencia podrán quedar sin código.
 - Generación de JSON homogéneo, validable y con un esquema documentado.
-- Especificación de una salida FHIR inicial para los tipos de información que puedan mapearse y validarse. No se presupone representar todo el contenido del texto como un recurso FHIR.
+- Especificación de una salida FHIR inicial para los tipos de información que puedan mapearse y validarse. La conversión todavía no está implementada y no se presupone representar todo el contenido del texto como un recurso FHIR.
 - Evaluación con datos anotados, separando el conjunto de prueba de los datos usados para desarrollar o ajustar el sistema.
 - Ejecución local y documentación de configuración, dependencias, versiones y limitaciones.
 
 ### Fuera del alcance
 
 - Enfermedades, síntomas/signos y procedimientos en la primera fase. Se abordarán como ampliación posterior con DisTEMIST, SympTEMIST y MedProcNER solo si sus corpus resultan compatibles y disponibles; su ausencia no impide completar el núcleo del proyecto.
+- Conversión completa a FHIR y soporte completo de la categoría `protein` en el esquema y el pipeline. Ambas quedan documentadas como ampliaciones pendientes de implementación.
 - Uso de historias clínicas reales o de datos personales de pacientes.
 - Diagnóstico, recomendación terapéutica o toma de decisiones clínicas.
 - Integración con IANUS, sistemas del SERGAS u otros sistemas de producción.

@@ -8,7 +8,7 @@ Aceptada
 
 La arquitectura dejaba pendiente fijar el enfoque técnico de la etapa de extracción de entidades (NER) tras inspeccionar los datos.
 
-La primera fase del proyecto se limita a fármacos con PharmaCoNER 1.1. El camino crítico es **fármacos → detección → normalización → JSON → métricas**, y la normalización es la etapa de mayor riesgo, por lo que la extracción debía resolverse con un coste de desarrollo contenido para poder llegar pronto a un flujo completo y evaluable de punta a punta.
+La primera fase prioriza los fármacos con PharmaCoNER 1.1. El camino crítico es **fármacos → detección → normalización → JSON → métricas**, y la normalización es la etapa de mayor riesgo, por lo que la extracción debía resolverse con un coste de desarrollo contenido para poder llegar pronto a un flujo completo y evaluable de punta a punta. PharmaCoNER también contiene anotaciones `PROTEINAS`; se conservan como una clase de origen distinta y su representación como categoría `protein` está definida en la ADR específica, aunque la integración en el esquema JSON actual sigue pendiente.
 
 Al inspeccionar el corpus se observa que:
 
@@ -22,9 +22,9 @@ Además, el sistema debe conservar el texto de entrada sin modificar y garantiza
 
 Implementar la detección de entidades farmacológicas con un sistema basado en diccionario y reglas (`app/cu03/ner.py`):
 
-- **Diccionario**: lexicón de formas superficiales de menciones (términos y sus variantes) construido a partir de las anotaciones gold de las particiones de entrenamiento de cada ejecución (`train` durante el desarrollo; `train + dev` en la configuración final). Solo se conservan las formas cuya precisión en entrenamiento (veces que aparece anotada frente a veces que aparece en el texto) alcanza el umbral `min_precision`, que se fija en dev. La partición evaluada nunca contribuye al diccionario.
+- **Diccionario**: léxico de formas superficiales de menciones (términos y sus variantes) construido a partir de las anotaciones gold de las particiones de entrenamiento de cada ejecución (`train` durante el desarrollo; `train + dev` en la configuración final). Para cada forma, se estima la precisión como `anotaciones / max(apariciones_en_texto, anotaciones)`: el numerador cuenta sus apariciones anotadas y el denominador considera las apariciones detectadas en los textos de entrenamiento, estén anotadas o no. Solo se conservan las formas que alcanzan `min_precision` y `min_count`. El valor de `min_precision` se debe seleccionar usando `dev`; el código expone el parámetro (por defecto `0.5`), pero no realiza por sí solo una búsqueda automática del umbral. La partición evaluada nunca contribuye al diccionario.
 - **Reglas**: búsqueda de las entradas del diccionario sobre el texto original con reglas deterministas de coincidencia: comparación sin distinguir mayúsculas y minúsculas, respeto de límites de palabra (no se detectan subcadenas, p. ej. "omeprazol" en "omeprazolemia") y resolución de solapamientos a favor de la coincidencia más larga. Devuelve `text`, `type`, `start`, `end` sobre el texto sin modificar y una puntuación de confianza.
-- **Categoría**: el tipo asignado se deriva de la etiqueta de origen de la entrada del diccionario, según el mapeo de etiquetas de PharmaCoNER documentado en [`proteinas-categoria-propia.md`](proteinas-categoria-propia.md): `NORMALIZABLES` y `NO_NORMALIZABLES` → `drug`, `PROTEINAS` → `protein` y `UNCLEAR` no se emite. El mismo diccionario detecta fármacos y proteínas, cada uno en su categoría.
+- **Etiquetas y alcance**: el extractor conserva la etiqueta PharmaCoNER de cada entrada. El objetivo prioritario y las métricas principales de la primera fase son los fármacos (`NORMALIZABLES` y `NO_NORMALIZABLES`). `PROTEINAS` es una clase biológica distinta, no un fármaco; su representación como `protein` y su exclusión de la normalización se establecen en [`proteinas-categoria-propia.md`](proteinas-categoria-propia.md). `UNCLEAR` queda fuera de las categorías emitidas. En la implementación actual, el mapeo del pipeline a JSON 1.0 convierte las dos etiquetas de fármacos en `drug` y filtra `PROTEINAS` y `UNCLEAR`; por tanto, la categoría `protein` aún no está integrada de extremo a extremo.
 
 El extractor respeta la interfaz de la etapa NER definida en la arquitectura: cualquier sustitución futura por otro método solo exige mantener el contrato JSON canónico ([`pipeline-json-canonico.md`](pipeline-json-canonico.md)).
 
@@ -62,9 +62,9 @@ El extractor respeta la interfaz de la etapa NER definida en la arquitectura: cu
 - Artículo del task PharmaCoNER: [ACL Anthology D19-5701](https://aclanthology.org/D19-5701/)
 - Modelo NER alternativo considerado: [PlanTL-GOB-ES/bsc-bio-ehr-es-pharmaconer](https://huggingface.co/PlanTL-GOB-ES/bsc-bio-ehr-es-pharmaconer)
 
-##
+## Ejemplo de la limitación de exhaustividad
 
-Ejemplo de la limitación de exhaustividad:
+
 
 ```text
 Diccionario:   {"enoxaparina", "omeprazol", "paracetamol"}
